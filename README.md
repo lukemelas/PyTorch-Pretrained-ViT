@@ -1,15 +1,12 @@
 # TODO
 ## Urgent
-- [ ] Rewrite README
-- [ ] Implement model
+- [x] Rewrite README
+- [x] Implement model
 - [ ] Convert pretrained weights
 - [ ] Colab example
 - [ ] `pip`
-## Nice-to-have
-- [ ] pytorch hub
-- [ ] sotabench / tests
 
-# EfficientNet PyTorch
+# ViT PyTorch
 
 ### Quickstart
 
@@ -29,10 +26,10 @@ The goal of this implementation is to be simple, highly extensible, and easy to 
 
 At the moment, you can easily:
  * Load pretrained ViT models
- * Evaluate EfficientNet models on ImageNet or your own task
+ * Evaluate on ImageNet or your own data
 
 _(Upcoming features)_ Coming soon: 
- * Quickly finetune ViT on your own dataset
+ * Finetune ViT on your own dataset
  * Train ViT from scratch on ImageNet (1K)
  * Export to ONNX for efficient inference
 
@@ -127,10 +124,12 @@ model.eval()
 
 # Load image
 # NOTE: Assumes an image `img.jpg` exists in the current directory
-tfms = transforms.Compose([transforms.Resize(224), transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),])
-img = tfms(Image.open('img.jpg')).unsqueeze(0)
-print(img.shape) # torch.Size([1, 3, 224, 224])
+img = transforms.Compose([
+    transforms.Resize((384, 384)), 
+    transforms.ToTensor(),
+    transforms.Normalize(0.5, 0.5),
+])(Image.open('img.jpg')).unsqueeze(0)
+print(img.shape) # torch.Size([1, 3, 384, 384])
 
 # Classify
 with torch.no_grad():
@@ -146,7 +145,7 @@ from efficientnet_pytorch import EfficientNet
 model = EfficientNet.from_pretrained('efficientnet-b0')
 
 # ... image preprocessing as in the classification example ...
-print(img.shape) # torch.Size([1, 3, 224, 224])
+print(img.shape) # torch.Size([1, 3, 384, 384])
 
 features = model.extract_features(img)
 print(features.shape) # torch.Size([1, 1280, 7, 7])
@@ -172,6 +171,12 @@ torch.onnx.export(model, dummy_input, "test-b1.onnx", verbose=True)
 #### ImageNet
 
 See `examples/imagenet` for details about evaluating on ImageNet.
+
+#### Credit
+
+Other great repositories with this model include: 
+ - [Ross Wightman's repo](https://github.com/rwightman/pytorch-image-models)
+ - [Phil Wang's repo](https://github.com/lucidrains/vit-pytorch)
 
 ### Contributing
 

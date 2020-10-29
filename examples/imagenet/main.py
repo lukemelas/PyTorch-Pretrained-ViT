@@ -1,8 +1,3 @@
-"""
-Evaluate on ImageNet. Note that at the moment, training is not implemented (I am working on it).
-that being said, evaluation is working.
-"""
-
 import argparse
 import os
 import random
@@ -24,7 +19,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
-from efficientnet_pytorch import EfficientNet
+from vit_pytorch import ViT
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('data', metavar='DIR',
@@ -69,10 +64,9 @@ parser.add_argument('--seed', default=None, type=int,
                     help='seed for initializing training. ')
 parser.add_argument('--gpu', default=None, type=int,
                     help='GPU id to use.')
-parser.add_argument('--image_size', default=224, type=int,
+parser.add_argument('--image_size', default=384, type=int,
                     help='image size')
-parser.add_argument('--advprop', default=False, action='store_true',
-                    help='use advprop or not')
+parser.add_argument('--vit', action='store_true' help='use ViT model')
 parser.add_argument('--multiprocessing-distributed', action='store_true',
                     help='Use multi-processing distributed training to launch '
                          'N processes per node, which has N GPUs. This is the '
@@ -134,21 +128,11 @@ def main_worker(gpu, ngpus_per_node, args):
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
     # create model
-    if 'efficientnet' in args.arch:  # NEW
-        if args.pretrained:
-            model = EfficientNet.from_pretrained(args.arch, advprop=args.advprop)
-            print("=> using pre-trained model '{}'".format(args.arch))
-        else:
-            print("=> creating model '{}'".format(args.arch))
-            model = EfficientNet.from_name(args.arch)
-
+    if args.vit:  # NEW
+        model = ViT(args.arch, pretrained=args.pretrained)
     else:
-        if args.pretrained:
-            print("=> using pre-trained model '{}'".format(args.arch))
-            model = models.__dict__[args.arch](pretrained=True)
-        else:
-            print("=> creating model '{}'".format(args.arch))
-            model = models.__dict__[args.arch]()
+        model = models.__dict__[args.arch](pretrained=args.pretrained)
+    print("=> using model '{}' (pretrained={})".format(args.arch, arg.pretrained))
 
     if args.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor
@@ -208,21 +192,13 @@ def main_worker(gpu, ngpus_per_node, args):
     # Data loading code
     traindir = os.path.join(args.data, 'train')
     valdir = os.path.join(args.data, 'val')
-    if args.advprop:
-        normalize = transforms.Lambda(lambda img: img * 2.0 - 1.0)
-    else:
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                         std=[0.229, 0.224, 0.225])
-
-    if 'efficientnet' in args.arch:
-        image_size = EfficientNet.get_image_size(args.arch)
-    else:
-        image_size = args.image_size
+    # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    normalize = transforms.Normalize(0.5, 0.5)
 
     train_dataset = datasets.ImageFolder(
         traindir,
         transforms.Compose([
-            transforms.RandomResizedCrop(image_size),
+            transforms.RandomResizedCrop(args.image_size),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
@@ -238,12 +214,12 @@ def main_worker(gpu, ngpus_per_node, args):
         num_workers=args.workers, pin_memory=True, sampler=train_sampler)
 
     val_transforms = transforms.Compose([
-        transforms.Resize(image_size, interpolation=PIL.Image.BICUBIC),
-        transforms.CenterCrop(image_size),
+        transforms.Resize(args.image_size, interpolation=PIL.Image.BICUBIC),
+        transforms.CenterCrop(args.image_size),
         transforms.ToTensor(),
         normalize,
     ])
-    print('Using image size', image_size)
+    print('Using image size', args.image_size)
 
     val_loader = torch.utils.data.DataLoader(
         datasets.ImageFolder(valdir, val_transforms),
