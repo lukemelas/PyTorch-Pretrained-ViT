@@ -2,6 +2,7 @@
    They are built to mirror those in the official Jax implementation.
 """
 
+from typing import Optional
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -37,7 +38,7 @@ class ViT(nn.Module):
 
     def __init__(
         self, 
-        name: str = None, 
+        name: Optional[str] = None, 
         pretrained: bool = False, 
         patches: int = 16,
         dim: int = 768,
@@ -46,12 +47,12 @@ class ViT(nn.Module):
         num_layers: int = 12,
         attention_dropout_rate: float = 0.0,
         dropout_rate: float = 0.1,
-        representation_size: int = None,
+        representation_size: Optional[int] = None,
         classifier: str = 'token',
         positional_embedding: str = '1d',
         image_size: int = 384,
         in_channels: int = 3, 
-        num_classes: int = None,
+        num_classes: Optional[int] = None,
     ):
         super().__init__()
         assert name or not pretrained, 'specify name of pretrained model'
@@ -71,12 +72,12 @@ class ViT(nn.Module):
             classifier = config['classifier']
         
         # Get number of classes
-        if pretrained:
+        if name is not None:  # known model name
             num_classes_init = NUM_CLASSES[name]
-        elif num_classes:
+        elif num_classes:  # custom model w/ custom num classes
             num_classes_init = num_classes
-        else:
-            num_classes_init = 1000  # default
+        else:  # custom model with default num classes
+            num_classes_init = 1000
 
         # Image and patch sizes
         h, w = as_tuple(image_size)  # image sizes
