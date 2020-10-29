@@ -8,11 +8,11 @@ import vit_pytorch
 
 
 npz_files = {
-    # 'B_16': 'jax_weights/imagenet21k_ViT-B_16.npz'',
-    'B_16_imagenet1k': 'jax_weights/ViT-B_16.npz',
-    'B_32_imagenet1k': 'jax_weights/ViT-B_32.npz',
-    'L_16_imagenet1k': 'jax_weights/ViT-L_16.npz',
-    'L_32_imagenet1k': 'jax_weights/ViT-L_32.npz',
+    'B_16': 'jax_weights/imagenet21k_ViT-B_16.npz',
+    # 'B_16_imagenet1k': 'jax_weights/ViT-B_16.npz',
+    # 'B_32_imagenet1k': 'jax_weights/ViT-B_32.npz',
+    # 'L_16_imagenet1k': 'jax_weights/ViT-L_16.npz',
+    # 'L_32_imagenet1k': 'jax_weights/ViT-L_32.npz',
 }
 
 
@@ -104,7 +104,7 @@ for name, filename in npz_files.items():
 
     # Load into model and test
     model.load_state_dict(new_state_dict)
-    check_model(model)
+    # check_model(model)
 
     # Save weights
     new_filename = f'weights/{name}.pth'

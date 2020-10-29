@@ -9,7 +9,7 @@ from torch.nn import functional as F
 
 from .transformer import Transformer
 from .utils import load_pretrained_weights, as_tuple
-from .configs import CONFIGS, WEIGHTS, NUM_CLASSES
+from .configs import PRETRAINED_MODELS
 
 
 class PositionalEmbedding1D(nn.Module):
@@ -59,9 +59,10 @@ class ViT(nn.Module):
 
         # Get pretrained config
         if name is not None:
-            assert name in WEIGHTS.keys(), 'name should be in: ' + ', '.join(WEIGHTS.keys())
-            config_name = name[:4]
-            config = CONFIGS[config_name]
+            assert name in PRETRAINED_MODELS.keys(), \
+                'name should be in: ' + ', '.join(PRETRAINED_MODELS.keys())
+            config = PRETRAINED_MODELS[name]['config']
+            patches = config['patches']
             dim = config['dim']
             ff_dim = config['ff_dim']
             num_heads = config['num_heads']
@@ -73,7 +74,7 @@ class ViT(nn.Module):
         
         # Get number of classes
         if name is not None:  # known model name
-            num_classes_init = NUM_CLASSES[name]
+            num_classes_init = PRETRAINED_MODELS[name]['num_classes']
         elif num_classes:  # custom model w/ custom num classes
             num_classes_init = num_classes
         else:  # custom model with default num classes
