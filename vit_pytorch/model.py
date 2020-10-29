@@ -6,7 +6,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from .transformer import TransformerEncoder, TransformerEncoderLayer
+from .transformer import Transformer
 from .utils import load_pretrained_weights, as_tuple
 from .configs import CONFIGS, WEIGHTS, NUM_CLASSES
 
@@ -99,12 +99,8 @@ class ViT(nn.Module):
             raise NotImplementedError()
         
         # Transformer
-        self.transformer = TransformerEncoder(
-            TransformerEncoderLayer(
-                d_model=dim, nhead=num_heads, dim_feedforward=ff_dim, 
-                dropout=dropout_rate, activation='gelu'), 
-            num_layers=num_layers
-        )
+        self.transformer = Transformer(num_layers=num_layers, dim=dim, num_heads=num_heads, 
+                                       ff_dim=ff_dim, dropout=dropout_rate)
         
         # Classifier head
         self.norm = nn.LayerNorm(dim, eps=1e-6)
