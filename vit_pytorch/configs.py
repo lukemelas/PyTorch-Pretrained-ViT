@@ -11,10 +11,9 @@ def get_base_config():
       num_layers=12,
       attention_dropout_rate=0.0,
       dropout_rate=0.1,
-      representation_size=None,
+      representation_size=768,
       classifier='token'
     )
-
 
 def get_b16_config():
     """Returns the ViT-B/16 configuration."""
@@ -22,13 +21,11 @@ def get_b16_config():
     config.update(dict(patches=(16, 16)))
     return config
 
-
 def get_b32_config():
     """Returns the ViT-B/32 configuration."""
     config = get_b16_config()
     config.update(dict(patches=(32, 32)))
     return config
-
 
 def get_l16_config():
     """Returns the ViT-L/16 configuration."""
@@ -41,9 +38,9 @@ def get_l16_config():
         num_layers=24,
         attention_dropout_rate=0.0,
         dropout_rate=0.1,
+        representation_size=1024
     ))
     return config
-
 
 def get_l32_config():
     """Returns the ViT-L/32 configuration."""
@@ -51,46 +48,58 @@ def get_l32_config():
     config.update(dict(patches=(32, 32)))
     return config
 
+def drop_head_variant(config):
+    config.update(dict(representation_size=None))
+    return config
+
 
 PRETRAINED_MODELS = {
     'B_16': {
       'config': get_b16_config(),
       'num_classes': 21843,
+      'image_size': (224, 224)
       'url': None
     },
     'B_32': {
       'config': get_b32_config(),
       'num_classes': 21843,
+      'image_size': (224, 224)
       'url': None
     },
     'L_16': {
       'config': get_l16_config(),
       'num_classes': 21843,
+      'image_size': (224, 224)
       'url': None
     },
     'L_32': {
       'config': get_l32_config(),
       'num_classes': 21843,
+      'image_size': (224, 224)
       'url': None
     },
     'B_16_imagenet1k': {
-      'config': get_b16_config(),
+      'config': drop_head_variant(get_b16_config()),
       'num_classes': 1000,
+      'image_size': (384, 384)
       'url': None
     },
     'B_32_imagenet1k': {
-      'config': get_b32_config(),
+      'config': drop_head_variant(get_b32_config()),
       'num_classes': 1000,
+      'image_size': (384, 384)
       'url': None
     },
     'L_16_imagenet1k': {
-      'config': get_l16_config(),
+      'config': drop_head_variant(get_l16_config()),
       'num_classes': 1000,
+      'image_size': (384, 384)
       'url': None
     },
     'L_32_imagenet1k': {
-      'config': get_l32_config(),
+      'config': drop_head_variant(get_l32_config()),
       'num_classes': 1000,
+      'image_size': (384, 384)
       'url': None
     },
 }

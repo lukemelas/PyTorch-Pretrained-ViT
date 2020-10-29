@@ -50,15 +50,22 @@ class ViT(nn.Module):
         representation_size: Optional[int] = None,
         classifier: str = 'token',
         positional_embedding: str = '1d',
-        image_size: int = 384,
         in_channels: int = 3, 
+        image_size: Optional[int] = None,
         num_classes: Optional[int] = None,
     ):
         super().__init__()
-        assert name or not pretrained, 'specify name of pretrained model'
 
-        # Get pretrained config
-        if name is not None:
+        # Configuration
+        if name is None:
+            check_msg = 'must specify name of pretrained model'
+            assert not pretrained, check_msg
+            assert not resize_positional_embedding, check_msg
+            if num_classes is None:
+                num_classes = 1000
+            if image_size is None:
+                image_size = 384
+        else:  # load pretrained model
             assert name in PRETRAINED_MODELS.keys(), \
                 'name should be in: ' + ', '.join(PRETRAINED_MODELS.keys())
             config = PRETRAINED_MODELS[name]['config']
@@ -71,14 +78,11 @@ class ViT(nn.Module):
             dropout_rate = config['dropout_rate']
             representation_size = config['representation_size']
             classifier = config['classifier']
-        
-        # Get number of classes
-        if name is not None:  # known model name
-            num_classes_init = PRETRAINED_MODELS[name]['num_classes']
-        elif num_classes:  # custom model w/ custom num classes
-            num_classes_init = num_classes
-        else:  # custom model with default num classes
-            num_classes_init = 1000
+            if image_size is None:
+                image_size = PRETRAINED_MODELS[name]['image_size']
+            if num_classes is None:
+                num_classes = PRETRAINED_MODELS[name]['num_classes']
+                
 
         # Image and patch sizes
         h, w = as_tuple(image_size)  # image sizes
@@ -87,7 +91,7 @@ class ViT(nn.Module):
         seq_len = gh * gw
 
         # Patch embedding
-        self.patch_embedding = nn.Conv2d(3, dim, kernel_size=(fh, fw), stride=(fh, fw))
+        self.patch_embedding = nn.Conv2d(in_channels, dim, kernel_size=(fh, fw), stride=(fh, fw))
 
         # Class token
         if classifier == 'token':
@@ -110,14 +114,22 @@ class ViT(nn.Module):
         
         # Load pretrained model
         if pretrained:
-            load_pretrained_weights(name)
+            pretrained_num_channels = 3
+            pretrained_num_classes = PRETRAINED_MODELS[name]['num_classes']
+            pretrained_image_size = PRETRAINED_MODELS[name]['image_size']
+            load_pretrained_weights(
+                name, 
+                load_first_conv=(in_channels == pretrained_num_channels),
+                load_fc=(num_classes == pretrained_num_classes),
+                resize_positional_embedding=(image_size == pretrained_image_size),
+            )
         
-        # Modify model as specified. NOTE: We do not do this earlier because 
-        # it's easier to load only part of a pretrained model in this manner.
-        if in_channels != 3:
-            self.embedding = nn.Conv2d(in_channels, patches, kernel_size=patches, stride=patches)
-        if num_classes is not None and num_classes != num_classes_init:
-            self.fc = nn.Linear(dim, num_classes)
+        # # Modify model as specified. NOTE: We do not do this earlier because 
+        # # it's easier to load only part of a pretrained model in this manner.
+        # if in_channels != 3:
+        #     self.embedding = nn.Conv2d(in_channels, patches, kernel_size=patches, stride=patches)
+        # if num_classes is not None and num_classes != num_classes_init:
+        #     self.fc = nn.Linear(dim, num_classes)
 
     def forward(self, x):
         """Breaks image into patches, applies transformer, applies MLP head.
