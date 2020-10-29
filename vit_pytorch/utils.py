@@ -14,7 +14,6 @@ def load_pretrained_weights(
     load_first_conv=True, 
     load_fc=True, 
     resize_positional_embedding=False,
-    image_size=None,
     verbose=True
 ):
     """Loads pretrained weights from weights path or download using url.
@@ -25,7 +24,9 @@ def load_pretrained_weights(
         weights_path (None or str):
             str: path to pretrained weights file on the local disk.
             None: use pretrained weights downloaded from the Internet.
+        load_first_conv (bool): Whether to load patch embedding.
         load_fc (bool): Whether to load pretrained weights for fc layer at the end of the model.
+        resize_positional_embedding=False,
         verbose (bool): Whether to print on completion
     """
     
@@ -34,7 +35,6 @@ def load_pretrained_weights(
         state_dict = model_zoo.load_url(PRETRAINED_MODELS[model_name]['url'])
     else:
         state_dict = torch.load(weights_path)
-    
 
     # Modify state dict
     expected_missing_keys = []
@@ -47,26 +47,20 @@ def load_pretrained_weights(
 
     # Change size of positional embeddings
     if resize_positional_embedding: 
-        state_dict['positional_embedding.pos_embedding'] = resize_positional_embedding_(
-            posemb=state_dict['positional_embedding.pos_embedding'],
-            posemb_new=model.state_dict()['positional_embedding.pos_embedding']
-        )
+        posemb = state_dict['positional_embedding.pos_embedding']
+        posemb_new = model.state_dict()['positional_embedding.pos_embedding']
+        state_dict['positional_embedding.pos_embedding'] = \
+            resize_positional_embedding_(posemb=posemb, posemb_new=posemb_new)
+        if verbose:
+            print('Resized positional embeddings from {} to {}'.format(
+                  posemb.shape, posemb_new.shape))
 
-    
     # Load state dict
     ret = model.load_state_dict(state_dict, strict=False)
-
-
-    if load_fc:
-        ret = model.load_state_dict(state_dict, strict=False)
-        assert not ret.missing_keys, 'Missing keys when loading pretrained weights: {}'.format(ret.missing_keys)
-    else:
-        state_dict.pop('fc.weight')
-        state_dict.pop('fc.bias')
-        ret = model.load_state_dict(state_dict, strict=False)
-        assert set(ret.missing_keys) == set(
-            ['fc.weight', 'fc.bias']), 'Missing keys when loading pretrained weights: {}'.format(ret.missing_keys)
-    assert not ret.unexpected_keys, 'Missing keys when loading pretrained weights: {}'.format(ret.unexpected_keys)
+    assert set(ret.missing_keys) == set(expected_missing_keys), \
+        'Missing keys when loading pretrained weights: {}'.format(ret.missing_keys)
+    assert not ret.unexpected_keys, \
+        'Missing keys when loading pretrained weights: {}'.format(ret.unexpected_keys)
     
     if verbose:
         print('Loaded pretrained weights for {}'.format(model_name))
@@ -91,7 +85,6 @@ def resize_positional_embedding_(posemb, posemb_new):
     # Get old and new grid sizes
     gs_old = int(np.sqrt(len(posemb_grid)))
     gs_new = int(np.sqrt(ntok_new))
-    logger.info('load_pretrained: grid-size from %s to %s', gs_old, gs_new)
     posemb_grid = posemb_grid.reshape(gs_old, gs_old, -1)
 
     # Rescale grid
