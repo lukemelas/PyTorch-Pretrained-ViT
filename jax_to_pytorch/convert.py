@@ -8,11 +8,14 @@ import vit_pytorch
 
 
 npz_files = {
-    # 'B_16': 'jax_weights/imagenet21k_ViT-B_16.npz',
-    # 'B_16_imagenet1k': 'jax_weights/ViT-B_16.npz',
-    # 'B_32_imagenet1k': 'jax_weights/ViT-B_32.npz',
-    # 'L_16_imagenet1k': 'jax_weights/ViT-L_16.npz',
-    # 'L_32_imagenet1k': 'jax_weights/ViT-L_32.npz',
+    'B_16': 'jax_weights/ViT-B_16.npz',
+    'B_32': 'jax_weights/ViT-B_32.npz',
+    # 'L_16': 'jax_weights/ViT-L_16.npz',
+    'L_32': 'jax_weights/ViT-L_32.npz',
+    'B_16_imagenet1k': 'jax_weights/ViT-B_16_imagenet1k.npz',
+    'B_32_imagenet1k': 'jax_weights/ViT-B_32_imagenet1k.npz',
+    'L_16_imagenet1k': 'jax_weights/ViT-L_16_imagenet1k.npz',
+    'L_32_imagenet1k': 'jax_weights/ViT-L_32_imagenet1k.npz',
 }
 
 
@@ -77,15 +80,20 @@ def convert(npz, state_dict):
     return new_state_dict
 
 
-def check_model(model):
+def check_model(model, name):
     model.eval()
     img = Image.open('../examples/simple/img.jpg')
-    img = transforms.Compose([transforms.Resize((384, 384)), transforms.ToTensor(), transforms.Normalize(0.5, 0.5)])(img).unsqueeze(0)
-    labels_map = json.load(open('../examples/simple/labels_map.txt'))
-    labels_map = [labels_map[str(i)] for i in range(1000)]
+    img = transforms.Compose([transforms.Resize(model.image_size), transforms.ToTensor(), transforms.Normalize(0.5, 0.5)])(img).unsqueeze(0)
+    if 'imagenet1k' in name:
+        labels_file = '../examples/simple/labels_map.txt' 
+        labels_map = json.load(open(labels_file))
+        labels_map = [labels_map[str(i)] for i in range(1000)]
+        print('-----\nShould be index 388 (panda) w/ high probability:')
+    else:
+        print('~ not checked ~')
+        return # labels_map = open('../examples/simple/labels_map_21k.txt').read().splitlines()
     with torch.no_grad():
         outputs = model(img).squeeze(0)
-    print('-----\nShould be index 388 (panda) w/ high probability:')
     for idx in torch.topk(outputs, k=3).indices.tolist():
         prob = torch.softmax(outputs, -1)[idx].item()
         print('[{idx}] {label:<75} ({p:.2f}%)'.format(idx=idx, label=labels_map[idx], p=prob*100))
@@ -104,7 +112,8 @@ for name, filename in npz_files.items():
 
     # Load into model and test
     model.load_state_dict(new_state_dict)
-    # check_model(model)
+    print(f'Checking: {name}')
+    check_model(model, name)
 
     # Save weights
     new_filename = f'weights/{name}.pth'

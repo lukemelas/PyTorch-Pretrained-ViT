@@ -2,7 +2,7 @@
 ## Urgent
 - [x] Rewrite README
 - [x] Implement model
-- [ ] Convert pretrained weights
+- [x] Convert pretrained weights
 - [ ] Colab example
 - [ ] `pip`
 
@@ -13,7 +13,7 @@
 Install with `pip install vit_pytorch` and load a pretrained ViT with:
 ```python
 from vit_pytorch import ViT
-model = ViT('B_16', pretrained=True)
+model = ViT('B_16_imagenet1k', pretrained=True)
 ```
 
 Or find a Google Colab example [here]().  

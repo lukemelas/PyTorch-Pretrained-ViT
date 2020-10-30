@@ -13,6 +13,7 @@ def load_pretrained_weights(
     weights_path=None, 
     load_first_conv=True, 
     load_fc=True, 
+    load_repr_layer=False,
     resize_positional_embedding=False,
     verbose=True
 ):
@@ -37,12 +38,14 @@ def load_pretrained_weights(
     else:
         state_dict = torch.load(weights_path)
 
-    # Modify state dict
+    # Modifications to load partial state dict
     expected_missing_keys = []
     if not load_first_conv:
         expected_missing_keys += ['patch_embedding.weight', 'patch_embedding.bias']
     if not load_fc:
         expected_missing_keys += ['fc.weight', 'fc.bias']
+    if not load_repr_layer:
+        expected_missing_keys += ['pre_logits.weight', 'pre_logits.bias']
     for key in expected_missing_keys:
         state_dict.pop(key)
 

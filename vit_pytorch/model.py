@@ -48,6 +48,7 @@ class ViT(nn.Module):
         attention_dropout_rate: float = 0.0,
         dropout_rate: float = 0.1,
         representation_size: Optional[int] = None,
+        load_repr_layer: bool = False,
         classifier: str = 'token',
         positional_embedding: str = '1d',
         in_channels: int = 3, 
@@ -82,7 +83,7 @@ class ViT(nn.Module):
                 image_size = PRETRAINED_MODELS[name]['image_size']
             if num_classes is None:
                 num_classes = PRETRAINED_MODELS[name]['num_classes']
-                
+        self.image_size = image_size                
 
         # Image and patch sizes
         h, w = as_tuple(image_size)  # image sizes
@@ -108,9 +109,16 @@ class ViT(nn.Module):
         self.transformer = Transformer(num_layers=num_layers, dim=dim, num_heads=num_heads, 
                                        ff_dim=ff_dim, dropout=dropout_rate)
         
+        # Representation layer
+        if representation_size and load_repr_layer:
+            self.pre_logits = nn.Linear(dim, representation_size)
+            pre_logits_size = representation_size
+        else:
+            pre_logits_size = dim
+
         # Classifier head
-        self.norm = nn.LayerNorm(dim, eps=1e-6)
-        self.fc = nn.Linear(dim, num_classes)
+        self.norm = nn.LayerNorm(pre_logits_size, eps=1e-6)
+        self.fc = nn.Linear(pre_logits_size, num_classes)
         
         # Load pretrained model
         if pretrained:
@@ -121,6 +129,7 @@ class ViT(nn.Module):
                 self, name, 
                 load_first_conv=(in_channels == pretrained_num_channels),
                 load_fc=(num_classes == pretrained_num_classes),
+                load_repr_layer=load_repr_layer,
                 resize_positional_embedding=(image_size == pretrained_image_size),
             )
         
@@ -145,6 +154,9 @@ class ViT(nn.Module):
         if hasattr(self, 'positional_embedding'): 
             x = self.positional_embedding(x)  # b,gh*gw+1,d 
         x = self.transformer(x)  # b,gh*gw+1,d
+        if hasattr(self, 'pre_logits'):
+            x = self.pre_logits(x)
+            x = torch.tanh(x)
         if hasattr(self, 'fc'):
             x = self.norm(x)[:, 0]  # b,d
             x = self.fc(x)  # b,num_classes
