@@ -15,10 +15,10 @@ from setuptools import find_packages, setup, Command
 NAME = 'vit_pytorch'
 DESCRIPTION = 'Visual Transformers (ViT) in PyTorch.'
 URL = 'https://github.com/lukemelas/ViT-PyTorch'
-EMAIL = 'lmelaskyriazi@college.harvard.edu'
+EMAIL = 'luke.melas@gmail.com'
 AUTHOR = 'Luke'
 REQUIRES_PYTHON = '>=3.5.0'
-VERSION = '0.7.0'
+VERSION = '0.0.1'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
