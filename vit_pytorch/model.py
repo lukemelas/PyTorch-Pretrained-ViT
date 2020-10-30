@@ -110,7 +110,7 @@ class ViT(nn.Module):
         
         # Classifier head
         self.norm = nn.LayerNorm(dim, eps=1e-6)
-        self.fc = nn.Linear(dim, num_classes_init)
+        self.fc = nn.Linear(dim, num_classes)
         
         # Load pretrained model
         if pretrained:

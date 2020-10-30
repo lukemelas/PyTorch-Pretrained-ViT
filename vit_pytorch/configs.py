@@ -57,49 +57,49 @@ PRETRAINED_MODELS = {
     'B_16': {
       'config': get_b16_config(),
       'num_classes': 21843,
-      'image_size': (224, 224)
+      'image_size': (224, 224),
       'url': None
     },
     'B_32': {
       'config': get_b32_config(),
       'num_classes': 21843,
-      'image_size': (224, 224)
+      'image_size': (224, 224),
       'url': None
     },
     'L_16': {
       'config': get_l16_config(),
       'num_classes': 21843,
-      'image_size': (224, 224)
+      'image_size': (224, 224),
       'url': None
     },
     'L_32': {
       'config': get_l32_config(),
       'num_classes': 21843,
-      'image_size': (224, 224)
+      'image_size': (224, 224),
       'url': None
     },
     'B_16_imagenet1k': {
       'config': drop_head_variant(get_b16_config()),
       'num_classes': 1000,
-      'image_size': (384, 384)
+      'image_size': (384, 384),
       'url': None
     },
     'B_32_imagenet1k': {
       'config': drop_head_variant(get_b32_config()),
       'num_classes': 1000,
-      'image_size': (384, 384)
+      'image_size': (384, 384),
       'url': None
     },
     'L_16_imagenet1k': {
       'config': drop_head_variant(get_l16_config()),
       'num_classes': 1000,
-      'image_size': (384, 384)
+      'image_size': (384, 384),
       'url': None
     },
     'L_32_imagenet1k': {
       'config': drop_head_variant(get_l32_config()),
       'num_classes': 1000,
-      'image_size': (384, 384)
+      'image_size': (384, 384),
       'url': None
     },
 }
