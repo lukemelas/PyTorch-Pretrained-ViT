@@ -9,7 +9,7 @@ from .configs import PRETRAINED_MODELS
 
 def load_pretrained_weights(
     model, 
-    model_name, 
+    model_name=None, 
     weights_path=None, 
     load_first_conv=True, 
     load_fc=True, 
@@ -29,6 +29,7 @@ def load_pretrained_weights(
         resize_positional_embedding=False,
         verbose (bool): Whether to print on completion
     """
+    assert bool(model_name) ^ bool(weights_path), 'Expected exactly one of model_name or weights_path'
     
     # Load or download weights
     if weights_path is None:
@@ -63,7 +64,7 @@ def load_pretrained_weights(
         'Missing keys when loading pretrained weights: {}'.format(ret.unexpected_keys)
     
     if verbose:
-        print('Loaded pretrained weights for {}'.format(model_name))
+        print('Loaded pretrained weights.')
 
 
 def as_tuple(x):
