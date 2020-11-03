@@ -36,7 +36,7 @@ def load_pretrained_weights(
     if weights_path is None:
         url = PRETRAINED_MODELS[model_name]['url']
         if url:
-            state_dict = model_zoo.load_url()
+            state_dict = model_zoo.load_url(url)
         else:
             raise ValueError(f'Pretrained model for {model_name} has not yet been released')
     else:
@@ -44,11 +44,11 @@ def load_pretrained_weights(
 
     # Modifications to load partial state dict
     expected_missing_keys = []
-    if not load_first_conv:
+    if not load_first_conv and 'patch_embedding.weight' in state_dict:
         expected_missing_keys += ['patch_embedding.weight', 'patch_embedding.bias']
-    if not load_fc:
+    if not load_fc and 'fc.weight' in state_dict:
         expected_missing_keys += ['fc.weight', 'fc.bias']
-    if not load_repr_layer:
+    if not load_repr_layer and 'pre_logits.weight' in state_dict:
         expected_missing_keys += ['pre_logits.weight', 'pre_logits.bias']
     for key in expected_missing_keys:
         state_dict.pop(key)

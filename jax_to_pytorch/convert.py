@@ -10,7 +10,7 @@ import pytorch_pretrained_vit
 npz_files = {
     'B_16': 'jax_weights/ViT-B_16.npz',
     'B_32': 'jax_weights/ViT-B_32.npz',
-    # 'L_16': 'jax_weights/ViT-L_16.npz',
+    # 'L_16': 'jax_weights/ViT-L_16.npz',  # <-- not available
     'L_32': 'jax_weights/ViT-L_32.npz',
     'B_16_imagenet1k': 'jax_weights/ViT-B_16_imagenet1k.npz',
     'B_32_imagenet1k': 'jax_weights/ViT-B_32_imagenet1k.npz',
@@ -117,6 +117,6 @@ for name, filename in npz_files.items():
 
     # Save weights
     new_filename = f'weights/{name}.pth'
-    torch.save(new_state_dict, new_filename)
+    torch.save(new_state_dict, new_filename, _use_new_zipfile_serialization=False)
     print(f"Converted {filename} and saved to {new_filename}")
 

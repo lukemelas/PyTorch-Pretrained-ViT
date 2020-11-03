@@ -1,11 +1,3 @@
-# TODO
-## Urgent
-- [x] Rewrite README
-- [x] Implement model
-- [x] Convert pretrained weights
-- [ ] Colab example
-- [x] `pip`
-
 # ViT PyTorch
 
 ### Quickstart
@@ -16,7 +8,7 @@ from pytorch_pretrained_vit import ViT
 model = ViT('B_16_imagenet1k', pretrained=True)
 ```
 
-Or find a Google Colab example [here]().  
+Or find a Google Colab example [here](https://colab.research.google.com/drive/1muZ4QFgVfwALgqmrfOkp7trAvqDemckO?usp=sharing).  
 
 ### Overview
 This repository contains an op-for-op PyTorch reimplementation of the [Visual Transformer](https://openreview.net/forum?id=YicbFdNTTy) architecture from [Google](https://github.com/google-research/vision_transformer), along with pre-trained models and examples.
@@ -26,9 +18,9 @@ The goal of this implementation is to be simple, highly extensible, and easy to 
 At the moment, you can easily:
  * Load pretrained ViT models
  * Evaluate on ImageNet or your own data
+ * Finetune ViT on your own dataset
 
 _(Upcoming features)_ Coming soon: 
- * Finetune ViT on your own dataset
  * Train ViT from scratch on ImageNet (1K)
  * Export to ONNX for efficient inference
 

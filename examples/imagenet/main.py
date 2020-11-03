@@ -19,7 +19,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
-from pytorch_pretrained_vit import ViT
+from pytorch_pretrained_vit import ViT, load_pretrained_weights
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('data', metavar='DIR',
@@ -66,7 +66,7 @@ parser.add_argument('--gpu', default=None, type=int,
                     help='GPU id to use.')
 parser.add_argument('--image_size', default=224, type=int,
                     help='image size')
-parser.add_argument('--vit', action='store_true' help='use ViT model')
+parser.add_argument('--vit', action='store_true', help='use ViT model')
 parser.add_argument('--multiprocessing-distributed', action='store_true',
                     help='Use multi-processing distributed training to launch '
                          'N processes per node, which has N GPUs. This is the '
@@ -127,12 +127,18 @@ def main_worker(gpu, ngpus_per_node, args):
             args.rank = args.rank * ngpus_per_node + gpu
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
-    # create model
-    if args.vit:  # NEW
+    
+    # NEW
+    if args.vit:      
         model = ViT(args.arch, pretrained=args.pretrained)
+
+        # # NOTE: This is for debugging
+        # model = ViT('B_16_imagenet1k', pretrained=False)
+        # load_pretrained_weights(model, weights_path='/home/luke/projects/experiments/ViT-PyTorch/jax_to_pytorch/weights/B_16_imagenet1k.pth')
+
     else:
         model = models.__dict__[args.arch](pretrained=args.pretrained)
-    print("=> using model '{}' (pretrained={})".format(args.arch, arg.pretrained))
+    print("=> using model '{}' (pretrained={})".format(args.arch, args.pretrained))
 
     if args.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor

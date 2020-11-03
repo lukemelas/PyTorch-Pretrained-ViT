@@ -58,7 +58,7 @@ PRETRAINED_MODELS = {
       'config': get_b16_config(),
       'num_classes': 21843,
       'image_size': (224, 224),
-      'url': None
+      'url': "https://github.com/greeneggsandyaml/tmp/releases/download/0.0.1/B_16.pth"
     },
     'B_32': {
       'config': get_b32_config(),
@@ -82,13 +82,13 @@ PRETRAINED_MODELS = {
       'config': drop_head_variant(get_b16_config()),
       'num_classes': 1000,
       'image_size': (384, 384),
-      'url': None
+      'url': "https://github.com/greeneggsandyaml/tmp/releases/download/0.0.1/B_16_imagenet1k.pth"
     },
     'B_32_imagenet1k': {
       'config': drop_head_variant(get_b32_config()),
       'num_classes': 1000,
       'image_size': (384, 384),
-      'url': None
+      'url': "https://github.com/greeneggsandyaml/tmp/releases/download/0.0.1/B_32_imagenet1k.pth"
     },
     'L_16_imagenet1k': {
       'config': drop_head_variant(get_l16_config()),
