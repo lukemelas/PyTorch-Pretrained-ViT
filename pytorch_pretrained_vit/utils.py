@@ -20,8 +20,8 @@ def load_pretrained_weights(
     """Loads pretrained weights from weights path or download using url.
 
     Args:
-        model (Module): The whole model of efficientnet.
-        model_name (str): Model name of efficientnet.
+        model (Module): Full model (a nn.Module)
+        model_name (str): Model name (e.g. B_16)
         weights_path (None or str):
             str: path to pretrained weights file on the local disk.
             None: use pretrained weights downloaded from the Internet.

@@ -49,7 +49,7 @@ ViT is trained on a large-scale dataset (ImageNet-21k) with a huge amount of com
 
 ### About ViT-PyTorch
 
-ViT-PyTorch is a PyTorch re-implementation of EfficientNet. It is consistent with the [original Jax implementation](https://github.com/google-research/vision_transformer), so that it's easy to load Jax-pretrained weights.
+ViT-PyTorch is a PyTorch re-implementation of ViT. It is consistent with the [original Jax implementation](https://github.com/google-research/vision_transformer), so that it's easy to load Jax-pretrained weights.
 
 At the same time, we aim to make our PyTorch implementation as simple, flexible, and extensible as possible.
 

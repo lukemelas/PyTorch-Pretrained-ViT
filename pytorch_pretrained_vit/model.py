@@ -125,7 +125,6 @@ class ViT(nn.Module):
             pretrained_num_channels = 3
             pretrained_num_classes = PRETRAINED_MODELS[name]['num_classes']
             pretrained_image_size = PRETRAINED_MODELS[name]['image_size']
-            import pdb; pdb.set_trace()
             load_pretrained_weights(
                 self, name, 
                 load_first_conv=(in_channels == pretrained_num_channels),
