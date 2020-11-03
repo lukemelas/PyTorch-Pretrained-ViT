@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torchvision import transforms
 
-import vit_pytorch
+import pytorch_pretrained_vit
 
 
 npz_files = {
@@ -105,7 +105,7 @@ for name, filename in npz_files.items():
     npz = np.load(filename)
 
     # Load PyTorch model
-    model = vit_pytorch.ViT(name=name, pretrained=False)
+    model = pytorch_pretrained_vit.ViT(name=name, pretrained=False)
 
     # Convert weights
     new_state_dict = convert(npz, model.state_dict())

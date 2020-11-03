@@ -4,20 +4,19 @@
 - [x] Implement model
 - [x] Convert pretrained weights
 - [ ] Colab example
-- [ ] `pip`
+- [x] `pip`
 
 # ViT PyTorch
 
 ### Quickstart
 
-Install with `pip install vit_pytorch` and load a pretrained ViT with:
+Install with `pip install pytorch_pretrained_vit` and load a pretrained ViT with:
 ```python
-from vit_pytorch import ViT
+from pytorch_pretrained_vit import ViT
 model = ViT('B_16_imagenet1k', pretrained=True)
 ```
 
 Or find a Google Colab example [here]().  
-<!-- TODO: Google Colab example -->
 
 ### Overview
 This repository contains an op-for-op PyTorch reimplementation of the [Visual Transformer](https://openreview.net/forum?id=YicbFdNTTy) architecture from [Google](https://github.com/google-research/vision_transformer), along with pre-trained models and examples.
@@ -66,7 +65,7 @@ At the same time, we aim to make our PyTorch implementation as simple, flexible,
 
 Install with pip:
 ```bash
-pip install vit_pytorch
+pip install pytorch_pretrained_vit
 ```
 
 Or from source:
@@ -82,7 +81,7 @@ pip install -e .
 
 Loading a pretrained model is easy:
 ```python
-from vit_pytorch import ViT
+from pytorch_pretrained_vit import ViT
 model = ViT('B_16_imagenet1k', pretrained=True)
 ```
 
@@ -100,7 +99,7 @@ Details about the models are below:
 
 Loading custom configurations is just as easy: 
 ```python
-from vit_pytorch import ViT
+from pytorch_pretrained_vit import ViT
 # The following is equivalent to ViT('B_16')
 config = dict(hidden_size=512, num_heads=8, num_layers=6)
 model = ViT.from_config(config)
@@ -118,7 +117,7 @@ import torch
 from torchvision import transforms
 
 # Load ViT
-from vit_pytorch import ViT
+from pytorch_pretrained_vit import ViT
 model = ViT('B_16_imagenet1k', pretrained=True)
 model.eval()
 

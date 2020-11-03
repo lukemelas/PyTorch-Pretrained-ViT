@@ -19,7 +19,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
-from vit_pytorch import ViT
+from pytorch_pretrained_vit import ViT
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('data', metavar='DIR',
@@ -64,7 +64,7 @@ parser.add_argument('--seed', default=None, type=int,
                     help='seed for initializing training. ')
 parser.add_argument('--gpu', default=None, type=int,
                     help='GPU id to use.')
-parser.add_argument('--image_size', default=384, type=int,
+parser.add_argument('--image_size', default=224, type=int,
                     help='image size')
 parser.add_argument('--vit', action='store_true' help='use ViT model')
 parser.add_argument('--multiprocessing-distributed', action='store_true',

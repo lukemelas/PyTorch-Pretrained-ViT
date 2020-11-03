@@ -12,13 +12,13 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'vit_pytorch'
+NAME = 'pytorch-pretrained-vit'
 DESCRIPTION = 'Visual Transformers (ViT) in PyTorch.'
 URL = 'https://github.com/lukemelas/ViT-PyTorch'
 EMAIL = 'luke.melas@gmail.com'
 AUTHOR = 'Luke'
 REQUIRES_PYTHON = '>=3.5.0'
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 
 # What packages are required for this module to be executed?
 REQUIRED = [

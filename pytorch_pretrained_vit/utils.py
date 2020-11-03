@@ -34,7 +34,11 @@ def load_pretrained_weights(
     
     # Load or download weights
     if weights_path is None:
-        state_dict = model_zoo.load_url(PRETRAINED_MODELS[model_name]['url'])
+        url = PRETRAINED_MODELS[model_name]['url']
+        if url:
+            state_dict = model_zoo.load_url()
+        else:
+            raise ValueError(f'Pretrained model for {model_name} has not yet been released')
     else:
         state_dict = torch.load(weights_path)
 
