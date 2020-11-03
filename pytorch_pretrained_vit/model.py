@@ -125,12 +125,13 @@ class ViT(nn.Module):
             pretrained_num_channels = 3
             pretrained_num_classes = PRETRAINED_MODELS[name]['num_classes']
             pretrained_image_size = PRETRAINED_MODELS[name]['image_size']
+            import pdb; pdb.set_trace()
             load_pretrained_weights(
                 self, name, 
                 load_first_conv=(in_channels == pretrained_num_channels),
                 load_fc=(num_classes == pretrained_num_classes),
                 load_repr_layer=load_repr_layer,
-                resize_positional_embedding=(image_size == pretrained_image_size),
+                resize_positional_embedding=(image_size != pretrained_image_size),
             )
         
         # # Modify model as specified. NOTE: We do not do this earlier because 

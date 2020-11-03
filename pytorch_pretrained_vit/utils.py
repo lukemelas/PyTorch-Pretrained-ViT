@@ -58,7 +58,8 @@ def load_pretrained_weights(
         posemb = state_dict['positional_embedding.pos_embedding']
         posemb_new = model.state_dict()['positional_embedding.pos_embedding']
         state_dict['positional_embedding.pos_embedding'] = \
-            resize_positional_embedding_(posemb=posemb, posemb_new=posemb_new)
+            resize_positional_embedding_(posemb=posemb, posemb_new=posemb_new, 
+                has_class_token=hasattr(model, 'class_token'))
         if verbose:
             print('Resized positional embeddings from {} to {}'.format(
                   posemb.shape, posemb_new.shape))
@@ -78,13 +79,13 @@ def as_tuple(x):
     return x if isinstance(x, tuple) else (x, x)
 
 
-def resize_positional_embedding_(posemb, posemb_new):
+def resize_positional_embedding_(posemb, posemb_new, has_class_token=True):
     """Rescale the grid of position embeddings in a sensible manner"""
     from scipy.ndimage import zoom
 
     # Deal with class token
     ntok_new = posemb_new.shape[1]
-    if hasattr(model, 'class_token'):  # this means classifier == 'token'
+    if has_class_token:  # this means classifier == 'token'
         posemb_tok, posemb_grid = posemb[:, :1], posemb[0, 1:]
         ntok_new -= 1
     else:

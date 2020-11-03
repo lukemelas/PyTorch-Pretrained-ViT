@@ -82,6 +82,9 @@ Details about the models are below:
 |    *Name*         |* Pretrained on *|*Finetuned on*|*Available? *|
 |:-----------------:|:---------------:|:------------:|:-----------:|
 | `B_16`            |  ImageNet-21k   | -            |      ✓      |
+| `B_32`            |  ImageNet-21k   | -            |      ✓      |
+| `L_16`            |  ImageNet-21k   | -            |      -      |
+| `L_32`            |  ImageNet-21k   | -            |      ✓      |
 | `B_16_imagenet1k` |  ImageNet-21k   | ImageNet-1k  |      ✓      |
 | `B_32_imagenet1k` |  ImageNet-21k   | ImageNet-1k  |      ✓      |
 | `L_16_imagenet1k` |  ImageNet-21k   | ImageNet-1k  |      ✓      |
