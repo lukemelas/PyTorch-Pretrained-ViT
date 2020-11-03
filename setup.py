@@ -18,7 +18,7 @@ URL = 'https://github.com/lukemelas/ViT-PyTorch'
 EMAIL = 'luke.melas@gmail.com'
 AUTHOR = 'Luke'
 REQUIRES_PYTHON = '>=3.5.0'
-VERSION = '0.0.5'
+VERSION = '0.0.6'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
