@@ -119,6 +119,9 @@ class ViT(nn.Module):
         # Classifier head
         self.norm = nn.LayerNorm(pre_logits_size, eps=1e-6)
         self.fc = nn.Linear(pre_logits_size, num_classes)
+
+        # Initialize weights
+        self.init_weights()
         
         # Load pretrained model
         if pretrained:
@@ -133,12 +136,18 @@ class ViT(nn.Module):
                 resize_positional_embedding=(image_size != pretrained_image_size),
             )
         
-        # # Modify model as specified. NOTE: We do not do this earlier because 
-        # # it's easier to load only part of a pretrained model in this manner.
-        # if in_channels != 3:
-        #     self.embedding = nn.Conv2d(in_channels, patches, kernel_size=patches, stride=patches)
-        # if num_classes is not None and num_classes != num_classes_init:
-        #     self.fc = nn.Linear(dim, num_classes)
+    @torch.no_grad()
+    def init_weights(self):
+        def _init(m):
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)  # _trunc_normal(m.weight, std=0.02)  # from .initialization import _trunc_normal
+                if hasattr(m, 'bias') and m.bias is not None:
+                    nn.init.normal_(m.bias, std=1e-6)  # nn.init.constant(m.bias, 0)
+        self.apply(_init)
+        nn.init.constant_(self.fc.weight, 0)
+        nn.init.constant_(self.fc.bias, 0)
+        nn.init.normal_(self.positional_embedding.pos_embedding, std=0.02)  # _trunc_normal(self.positional_embedding.pos_embedding, std=0.02)
+        nn.init.constant_(self.class_token, 0)
 
     def forward(self, x):
         """Breaks image into patches, applies transformer, applies MLP head.
