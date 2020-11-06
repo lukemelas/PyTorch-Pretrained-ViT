@@ -15,10 +15,10 @@ def load_pretrained_weights(
     load_fc=True, 
     load_repr_layer=False,
     resize_positional_embedding=False,
-    verbose=True
+    verbose=True,
+    strict=True,
 ):
     """Loads pretrained weights from weights path or download using url.
-
     Args:
         model (Module): Full model (a nn.Module)
         model_name (str): Model name (e.g. B_16)
@@ -60,19 +60,26 @@ def load_pretrained_weights(
         state_dict['positional_embedding.pos_embedding'] = \
             resize_positional_embedding_(posemb=posemb, posemb_new=posemb_new, 
                 has_class_token=hasattr(model, 'class_token'))
-        if verbose:
-            print('Resized positional embeddings from {} to {}'.format(
-                  posemb.shape, posemb_new.shape))
+        maybe_print('Resized positional embeddings from {} to {}'.format(
+                    posemb.shape, posemb_new.shape), verbose)
 
     # Load state dict
     ret = model.load_state_dict(state_dict, strict=False)
-    assert set(ret.missing_keys) == set(expected_missing_keys), \
-        'Missing keys when loading pretrained weights: {}'.format(ret.missing_keys)
-    assert not ret.unexpected_keys, \
-        'Missing keys when loading pretrained weights: {}'.format(ret.unexpected_keys)
-    
-    if verbose:
-        print('Loaded pretrained weights.')
+    if strict:
+        assert set(ret.missing_keys) == set(expected_missing_keys), \
+            'Missing keys when loading pretrained weights: {}'.format(ret.missing_keys)
+        assert not ret.unexpected_keys, \
+            'Missing keys when loading pretrained weights: {}'.format(ret.unexpected_keys)
+        maybe_print('Loaded pretrained weights.', verbose)
+    else:
+        maybe_print('Missing keys when loading pretrained weights: {}'.format(ret.missing_keys), verbose)
+        maybe_print('Unexpected keys when loading pretrained weights: {}'.format(ret.unexpected_keys), verbose)
+        return ret
+
+
+def maybe_print(s: str, flag: bool):
+    if flag:
+        print(s)
 
 
 def as_tuple(x):
@@ -104,3 +111,4 @@ def resize_positional_embedding_(posemb, posemb_new, has_class_token=True):
     # Deal with class token and return
     posemb = torch.cat([posemb_tok, posemb_grid], dim=1)
     return posemb
+
