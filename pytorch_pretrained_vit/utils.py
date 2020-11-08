@@ -104,8 +104,8 @@ def resize_positional_embedding_(posemb, posemb_new, has_class_token=True):
     posemb_grid = posemb_grid.reshape(gs_old, gs_old, -1)
 
     # Rescale grid
-    zoom = (gs_new / gs_old, gs_new / gs_old, 1)
-    posemb_grid = zoom(posemb_grid, zoom, order=1)
+    zoom_factor = (gs_new / gs_old, gs_new / gs_old, 1)
+    posemb_grid = zoom(posemb_grid, zoom_factor, order=1)
     posemb_grid = posemb_grid.reshape(1, gs_new * gs_new, -1)
 
     # Deal with class token and return
