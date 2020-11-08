@@ -1,6 +1,7 @@
 """utils.py - Helper functions
 """
 
+import numpy as np
 import torch
 from torch.utils import model_zoo
 
@@ -107,6 +108,7 @@ def resize_positional_embedding_(posemb, posemb_new, has_class_token=True):
     zoom_factor = (gs_new / gs_old, gs_new / gs_old, 1)
     posemb_grid = zoom(posemb_grid, zoom_factor, order=1)
     posemb_grid = posemb_grid.reshape(1, gs_new * gs_new, -1)
+    posemb_grid = torch.from_numpy(posemb_grid)
 
     # Deal with class token and return
     posemb = torch.cat([posemb_tok, posemb_grid], dim=1)
