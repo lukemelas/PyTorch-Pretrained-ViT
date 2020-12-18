@@ -82,10 +82,10 @@ class Block(nn.Module):
         self.drop = nn.Dropout(dropout)
 
     def forward(self, x, mask):
-        h = self.drop(self.proj(self.attn(self.norm1(x), mask)))
-        x = x + h
-        h = self.drop(self.pwff(self.norm2(x)))
-        x = x + h
+        h = self.drop(self.proj(self.attn(self.norm1(x), mask))) # eq 1
+        x = x + h # eq 2
+        h = self.drop(self.pwff(self.norm2(x))) # eq 3
+        x = x + h # eq 3
         return x
 
 
