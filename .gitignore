@@ -3,7 +3,7 @@ tmp
 *.pkl
 .vscode
 *.npy
-*.npz
+*.npz*
 *.pth
 
 # Byte-compiled / optimized / DLL files

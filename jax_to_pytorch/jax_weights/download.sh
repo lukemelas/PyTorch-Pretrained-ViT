@@ -6,8 +6,14 @@ wget https://storage.googleapis.com/vit_models/imagenet21k/ViT-B_16.npz
 # B_32
 wget https://storage.googleapis.com/vit_models/imagenet21k/ViT-B_32.npz
 
+# L_16
+wget https://storage.googleapis.com/vit_models/imagenet21k/ViT-L_16.npz
+
 # L_32
 wget https://storage.googleapis.com/vit_models/imagenet21k/ViT-L_32.npz
+
+# H_14
+wget https://storage.googleapis.com/vit_models/imagenet21k/ViT-H_14.npz
 
 # B_16_imagenet1k
 wget https://storage.googleapis.com/vit_models/imagenet21k%2Bimagenet2012/ViT-B_16.npz
@@ -22,7 +28,7 @@ wget https://storage.googleapis.com/vit_models/imagenet21k%2Bimagenet2012/ViT-L_
 wget https://storage.googleapis.com/vit_models/imagenet21k%2Bimagenet2012/ViT-L_32.npz
 
 # B_16_imagenet1k_224
-wget https://storage.googleapis.com/vit_models/imagenet21k%2Bimagenet2012/ViT-B_16-224.npz
+#wget https://storage.googleapis.com/vit_models/imagenet21k%2Bimagenet2012/ViT-B_16-224.npz
 
 # L_16_imagenet1k_224
-wget https://storage.googleapis.com/vit_models/imagenet21k%2Bimagenet2012/ViT-L_16-224.npz
+#wget https://storage.googleapis.com/vit_models/imagenet21k%2Bimagenet2012/ViT-L_16-224.npz

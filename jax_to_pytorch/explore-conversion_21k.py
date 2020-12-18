@@ -1,26 +1,29 @@
-import os
-import json
 from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
 
-import wget
+from importlib import reload
 import pytorch_pretrained_vit
+reload(pytorch_pretrained_vit)
 
-npz_files = {
-    'B_16': 'jax_weights/ViT-B_16.npz',
-    'B_32': 'jax_weights/ViT-B_32.npz',
-    'L_16': 'jax_weights/ViT-L_16.npz',
-    'L_32': 'jax_weights/ViT-L_32.npz',
-    'H_14': 'jax_weights/ViT-H_14.npz',
-    'B_16_imagenet1k': 'jax_weights/ViT-B_16.npz.1',
-    'B_32_imagenet1k': 'jax_weights/ViT-B_32.npz.1',
-    'L_16_imagenet1k': 'jax_weights/ViT-L_16.npz.1',
-    'L_32_imagenet1k': 'jax_weights/ViT-L_32.npz.1',
-}
+name = 'L_32'
+filename = 'jax_weights/ViT-L_32.npz'
+# npz_files = {
+#     'B_16': 'jax_weights/ViT-B_16.npz',
+#     'B_32': 'jax_weights/ViT-B_32.npz',
+#     'L_16': 'jax_weights/ViT-L_16.npz',
+#     'L_32': 'jax_weights/ViT-L_32.npz',
+#     'H_14': 'jax_weights/ViT-H_32.npz',
+#     'B_16_imagenet1k': 'jax_weights/ViT-B_16.npz.1',
+#     'B_32_imagenet1k': 'jax_weights/ViT-B_32.npz.1',
+#     'L_16_imagenet1k': 'jax_weights/ViT-L_16.npz.1',
+#     'L_32_imagenet1k': 'jax_weights/ViT-L_32.npz.1',
+# }
+num_classes = 21843
+# num_classes = 1000
 
-
+# single model conversion
 def jax_to_pytorch(k):
     k = k.replace('Transformer/encoder_norm', 'norm')
     k = k.replace('LayerNorm_0', 'norm1')
@@ -92,43 +95,39 @@ def check_model(model, name):
         labels_map = [labels_map[str(i)] for i in range(1000)]
         print('-----\nShould be index 388 (panda) w/ high probability:')
     else:
-        print('~ not checked ~')
-        return # labels_map = open('../examples/simple/labels_map_21k.txt').read().splitlines()
+        labels_map = open('../examples/simple/labels_map_21k.txt').read().splitlines()
     with torch.no_grad():
         outputs = model(img).squeeze(0)
     for idx in torch.topk(outputs, k=3).indices.tolist():
         prob = torch.softmax(outputs, -1)[idx].item()
         print('[{idx}] {label:<75} ({p:.2f}%)'.format(idx=idx, label=labels_map[idx], p=prob*100))
 
-def convert_batch():
-    # converts all the downloaded jax weights
-    for name, filename in npz_files.items():
-        convert_single(name, filename)
+# Load Jax weights
+npz = np.load(filename)
 
-def convert_single(name, filename):
-    # converts a single jax weight and saves it into the default pytorch dir
-    # Load Jax weights
-    if os.path.exists(filename):
-        npz = np.load(filename)
-    else:
-        url = pytorch_pretrained_vit.configs.PRETRAINED_MODELS[name]['url_og']
-        path = f'{filename}'
-        filename = wget.download(url, out=path)
-        assert(os.path.exists(filename))
-        npz = np.load(filename)
+# Load PyTorch model
+model = pytorch_pretrained_vit.ViT(name=name, pretrained=False, load_repr_layer=True)
 
-    # Load PyTorch model
-    model = pytorch_pretrained_vit.ViT(name=name, pretrained=False)
+# Convert weights
+new_state_dict = convert(npz, model.state_dict())
 
-    # Convert weights
-    new_state_dict = convert(npz, model.state_dict())
+# Load into model and test
+model.load_state_dict(new_state_dict)
 
-    # Load into model and test
-    model.load_state_dict(new_state_dict)
-    print(f'Checking: {name}')
-    check_model(model, name)
+check_model(model, name)
 
-    # Save weights
-    new_filename = f'$TORCH_HOME/models/{name}.pth'
-    torch.save(new_state_dict, new_filename, _use_new_zipfile_serialization=False)
-    print(f"Converted {filename} and saved to {new_filename}")
+# print out different layer weights and parameters
+
+print(model.pre_logits.weight)
+
+print(npz['pre_logits/kernel'])
+
+params = list(model.parameters())
+print(len(params))
+
+named_params = list(model.named_parameters())
+print(len(named_params))
+
+for name, param in model.named_parameters():
+    if param.requires_grad:
+        print(name, param.size())
