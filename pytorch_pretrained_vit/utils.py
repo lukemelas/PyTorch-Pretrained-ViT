@@ -2,7 +2,6 @@
 """
 import errno
 import os
-import re
 import sys
 import warnings
 import json
@@ -15,9 +14,6 @@ from torchvision import transforms
 
 import pytorch_pretrained_vit
 from .configs import PRETRAINED_MODELS
-
-# matches bfd8deac from resnet18-bfd8deac.pth
-HASH_REGEX = re.compile(r'-([a-f0-9]*)\.')
 
 def jax_to_pytorch(k):
     k = k.replace('Transformer/encoder_norm', 'norm')
@@ -83,7 +79,7 @@ def convert_single(name, filename):
     npz = np.load(filename)
 
     # Load PyTorch model
-    model = pytorch_pretrained_vit.ViT(name=name, pretrained=False)
+    model = pytorch_pretrained_vit.ViT(name=name, pretrained=False, load_repr_layer=True)
 
     # Convert weights
     new_state_dict = convert(npz, model.state_dict())
@@ -97,7 +93,7 @@ def convert_single(name, filename):
     print(f"Converted {filename} and saved to {new_filename}")
     return new_filename
 
-def download_load(model, model_name, url, model_dir=None, map_location=None, progress=True, check_hash=False, file_name=None):
+def download_load(model_name, url, model_dir=None, map_location=None, progress=True, check_hash=False, file_name=None):
     r"""Loads the Torch serialized object at the given URL.
     If downloaded file is a zip file, it will be automatically
     decompressed.
@@ -142,21 +138,18 @@ def download_load(model, model_name, url, model_dir=None, map_location=None, pro
     filename = os.path.basename(parts.path)
     if file_name is not None:
         filename = file_name
+    # cached_file doesnt have extension so it doesnt differentiate between pth and npz files
     cached_file = os.path.join(model_dir, filename)
-    if not os.path.exists(cached_file):
-        sys.stderr.write('Downloading: "{}" to {}\n'.format(url, cached_file))
-        hash_prefix = None
-        if check_hash:
-            r = HASH_REGEX.search(filename)  # r is Optional[Match[str]]
-            hash_prefix = r.group(1) if r else None
-        download_url_to_file(url, cached_file, hash_prefix, progress=progress)
-    if filename.endswith('.npz'):    
-        cached_file = convert_single(name=model_name, filename=cached_file)
-        
-    if _is_legacy_zip_format(cached_file):
-        return _legacy_zip_load(cached_file, model_dir, map_location)
+    cached_file_pth = '{}.pth'.format(cached_file)
+    if not os.path.exists(cached_file_pth):
+        cached_file_npz = '{}.npz'.format(cached_file)
+        sys.stderr.write('Downloading: "{}" to {}\n'.format(url, cached_file_npz))
+        download_url_to_file(url, cached_file_npz, progress=progress)
+        cached_file = convert_single(name=model_name, filename=cached_file_npz)
+    if _is_legacy_zip_format(cached_file_pth):
+        return _legacy_zip_load(cached_file_pth, model_dir, map_location)
 
-    return torch.load(cached_file, map_location=map_location)
+    return torch.load(cached_file_pth, map_location=map_location)
 
 def load_pretrained_weights(
     model, 
@@ -167,8 +160,7 @@ def load_pretrained_weights(
     load_repr_layer=False,
     resize_positional_embedding=False,
     verbose=True,
-    strict=True,
-    print_layers=True
+    strict=True
 ):
     """Loads pretrained weights from weights path or download using url.
     Args:
@@ -186,39 +178,24 @@ def load_pretrained_weights(
     
     # Load or download weights
     if weights_path is None:
-        #url = PRETRAINED_MODELS[model_name]['url']
         url = PRETRAINED_MODELS[model_name]['url_og']
         if url:
-            state_dict = download_load(model, model_name, url, file_name=model_name)
-            #state_dict = model_zoo.load_url(url)
+            state_dict = download_load(model_name, url, file_name=model_name)
         else:
             raise ValueError(f'Pretrained model for {model_name} has not yet been released')
     else:
         state_dict = torch.load(weights_path)
-
-    # Visualize loaded layers
-    if print_layers:
-        for name, param in model.named_parameters():
-            if param.requires_grad:
-                print(name, param.size())
-
+    
     # Modifications to load partial state dict
     expected_missing_keys = []
-    if not load_first_conv and 'patch_embedding.weight' in state_dict:
+    if ('patch_embedding.weight' in state_dict) and (load_first_conv==False):
         expected_missing_keys += ['patch_embedding.weight', 'patch_embedding.bias']
-    if not load_fc and 'fc.weight' in state_dict:
+    if ('fc.weight' in state_dict) and (load_fc==False):
         expected_missing_keys += ['fc.weight', 'fc.bias']
-    if not load_repr_layer and 'pre_logits.weight' in state_dict:
+    if ('pre_logits.weight' in state_dict) and (load_repr_layer==False):
         expected_missing_keys += ['pre_logits.weight', 'pre_logits.bias']
     for key in expected_missing_keys:
-        print(key)
         state_dict.pop(key)
-
-    # Visualize loaded layers
-    if print_layers:
-        for name, param in model.named_parameters():
-            if param.requires_grad:
-                print(name, param.size())
 
     # Change size of positional embeddings
     if resize_positional_embedding: 
@@ -233,8 +210,6 @@ def load_pretrained_weights(
     # Load state dict
     ret = model.load_state_dict(state_dict, strict=False)
     if strict:
-        print(ret.missing_keys)
-        print(expected_missing_keys)
         assert set(ret.missing_keys) == set(expected_missing_keys), \
             'Missing keys when loading pretrained weights: {}'.format(ret.missing_keys)
         assert not ret.unexpected_keys, \
@@ -281,4 +256,3 @@ def resize_positional_embedding_(posemb, posemb_new, has_class_token=True):
     # Deal with class token and return
     posemb = torch.cat([posemb_tok, posemb_grid], dim=1)
     return posemb
-
