@@ -1,12 +1,162 @@
 """utils.py - Helper functions
 """
-
+import errno
+import os
+import re
+import sys
+import warnings
+import json
+from PIL import Image
 import numpy as np
 import torch
 from torch.utils import model_zoo
+from torch.hub import get_dir, urlparse, download_url_to_file, _is_legacy_zip_format, _legacy_zip_load
+from torchvision import transforms
 
+import pytorch_pretrained_vit
 from .configs import PRETRAINED_MODELS
 
+# matches bfd8deac from resnet18-bfd8deac.pth
+HASH_REGEX = re.compile(r'-([a-f0-9]*)\.')
+
+def jax_to_pytorch(k):
+    k = k.replace('Transformer/encoder_norm', 'norm')
+    k = k.replace('LayerNorm_0', 'norm1')
+    k = k.replace('LayerNorm_2', 'norm2')
+    k = k.replace('MlpBlock_3/Dense_0', 'pwff.fc1')
+    k = k.replace('MlpBlock_3/Dense_1', 'pwff.fc2')
+    k = k.replace('MultiHeadDotProductAttention_1/out', 'proj')
+    k = k.replace('MultiHeadDotProductAttention_1/query', 'attn.proj_q')
+    k = k.replace('MultiHeadDotProductAttention_1/key', 'attn.proj_k')
+    k = k.replace('MultiHeadDotProductAttention_1/value', 'attn.proj_v')
+    k = k.replace('Transformer/posembed_input', 'positional_embedding')
+    k = k.replace('encoderblock_', 'blocks.')
+    k = 'patch_embedding.bias' if k == 'embedding/bias' else k
+    k = 'patch_embedding.weight' if k == 'embedding/kernel' else k
+    k = 'class_token' if k == 'cls' else k
+    k = k.replace('head', 'fc')
+    k = k.replace('kernel', 'weight')
+    k = k.replace('scale', 'weight')
+    k = k.replace('/', '.')
+    k = k.lower()
+    return k
+
+def convert(npz, state_dict):
+    new_state_dict = {}
+    pytorch_k2v = {jax_to_pytorch(k): v for k, v in npz.items()}
+    for pytorch_k, pytorch_v in state_dict.items():
+        
+        # Naming
+        if 'self_attn.out_proj.weight' in pytorch_k:
+            v = pytorch_k2v[pytorch_k]
+            v = v.reshape(v.shape[0] * v.shape[1], v.shape[2])
+        elif 'self_attn.in_proj_' in pytorch_k:
+            v = np.stack((pytorch_k2v[pytorch_k + '*q'], 
+                          pytorch_k2v[pytorch_k + '*k'], 
+                          pytorch_k2v[pytorch_k + '*v']), axis=0)
+        else:
+            if pytorch_k not in pytorch_k2v:
+                print(pytorch_k, list(pytorch_k2v.keys()))
+                assert False
+            v = pytorch_k2v[pytorch_k]
+        v = torch.from_numpy(v)
+        
+        # Sizing
+        if '.weight' in pytorch_k:
+            if len(pytorch_v.shape) == 2:
+                v = v.transpose(0, 1)
+            if len(pytorch_v.shape) == 4:
+                v = v.permute(3, 2, 0, 1)
+        if ('proj.weight' in pytorch_k):
+            v = v.transpose(0, 1)
+            v = v.reshape(-1, v.shape[-1]).T
+        if ('attn.proj_' in pytorch_k and 'weight' in pytorch_k):
+            v = v.permute(0, 2, 1)
+            v = v.reshape(-1, v.shape[-1])
+        if 'attn.proj_' in pytorch_k and 'bias' in pytorch_k:
+            v = v.reshape(-1)
+        new_state_dict[pytorch_k] = v
+    return new_state_dict
+
+def convert_single(name, filename):
+    # Load Jax weights
+    npz = np.load(filename)
+
+    # Load PyTorch model
+    model = pytorch_pretrained_vit.ViT(name=name, pretrained=False)
+
+    # Convert weights
+    new_state_dict = convert(npz, model.state_dict())
+
+    # Load into model and test
+    model.load_state_dict(new_state_dict)
+    
+    # Save weights
+    new_filename = os.path.abspath('{}.pth'.format(os.path.splitext(filename)[0]))
+    torch.save(new_state_dict, new_filename, _use_new_zipfile_serialization=False)
+    print(f"Converted {filename} and saved to {new_filename}")
+    return new_filename
+
+def download_load(model, model_name, url, model_dir=None, map_location=None, progress=True, check_hash=False, file_name=None):
+    r"""Loads the Torch serialized object at the given URL.
+    If downloaded file is a zip file, it will be automatically
+    decompressed.
+    If the object is already present in `model_dir`, it's deserialized and
+    returned.
+    The default value of `model_dir` is ``<hub_dir>/checkpoints`` where
+    `hub_dir` is the directory returned by :func:`~torch.hub.get_dir`.
+    Args:
+        url (string): URL of the object to download
+        model_dir (string, optional): directory in which to save the object
+        map_location (optional): a function or a dict specifying how to remap storage locations (see torch.load)
+        progress (bool, optional): whether or not to display a progress bar to stderr.
+            Default: True
+        check_hash(bool, optional): If True, the filename part of the URL should follow the naming convention
+            ``filename-<sha256>.ext`` where ``<sha256>`` is the first eight or more
+            digits of the SHA256 hash of the contents of the file. The hash is used to
+            ensure unique names and to verify the contents of the file.
+            Default: False
+        file_name (string, optional): name for the downloaded file. Filename from `url` will be used if not set.
+    Example:
+        >>> state_dict = torch.hub.load_state_dict_from_url('https://s3.amazonaws.com/pytorch/models/resnet18-5c106cde.pth')
+    """
+    # Issue warning to move data if old env is set
+    if os.getenv('TORCH_MODEL_ZOO'):
+        warnings.warn('TORCH_MODEL_ZOO is deprecated, please use env TORCH_HOME instead')
+
+    if model_dir is None:
+        hub_dir = get_dir()
+        model_dir = os.path.join(hub_dir, 'checkpoints')
+
+    try:
+        os.makedirs(model_dir)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            # Directory already exists, ignore.
+            pass
+        else:
+            # Unexpected OSError, re-raise.
+            raise
+
+    parts = urlparse(url)
+    filename = os.path.basename(parts.path)
+    if file_name is not None:
+        filename = file_name
+    cached_file = os.path.join(model_dir, filename)
+    if not os.path.exists(cached_file):
+        sys.stderr.write('Downloading: "{}" to {}\n'.format(url, cached_file))
+        hash_prefix = None
+        if check_hash:
+            r = HASH_REGEX.search(filename)  # r is Optional[Match[str]]
+            hash_prefix = r.group(1) if r else None
+        download_url_to_file(url, cached_file, hash_prefix, progress=progress)
+    if filename.endswith('.npz'):    
+        cached_file = convert_single(name=model_name, filename=cached_file)
+        
+    if _is_legacy_zip_format(cached_file):
+        return _legacy_zip_load(cached_file, model_dir, map_location)
+
+    return torch.load(cached_file, map_location=map_location)
 
 def load_pretrained_weights(
     model, 
@@ -18,6 +168,7 @@ def load_pretrained_weights(
     resize_positional_embedding=False,
     verbose=True,
     strict=True,
+    print_layers=True
 ):
     """Loads pretrained weights from weights path or download using url.
     Args:
@@ -35,13 +186,21 @@ def load_pretrained_weights(
     
     # Load or download weights
     if weights_path is None:
-        url = PRETRAINED_MODELS[model_name]['url']
+        #url = PRETRAINED_MODELS[model_name]['url']
+        url = PRETRAINED_MODELS[model_name]['url_og']
         if url:
-            state_dict = model_zoo.load_url(url)
+            state_dict = download_load(model, model_name, url, file_name=model_name)
+            #state_dict = model_zoo.load_url(url)
         else:
             raise ValueError(f'Pretrained model for {model_name} has not yet been released')
     else:
         state_dict = torch.load(weights_path)
+
+    # Visualize loaded layers
+    if print_layers:
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                print(name, param.size())
 
     # Modifications to load partial state dict
     expected_missing_keys = []
@@ -52,7 +211,14 @@ def load_pretrained_weights(
     if not load_repr_layer and 'pre_logits.weight' in state_dict:
         expected_missing_keys += ['pre_logits.weight', 'pre_logits.bias']
     for key in expected_missing_keys:
+        print(key)
         state_dict.pop(key)
+
+    # Visualize loaded layers
+    if print_layers:
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                print(name, param.size())
 
     # Change size of positional embeddings
     if resize_positional_embedding: 
@@ -67,6 +233,8 @@ def load_pretrained_weights(
     # Load state dict
     ret = model.load_state_dict(state_dict, strict=False)
     if strict:
+        print(ret.missing_keys)
+        print(expected_missing_keys)
         assert set(ret.missing_keys) == set(expected_missing_keys), \
             'Missing keys when loading pretrained weights: {}'.format(ret.missing_keys)
         assert not ret.unexpected_keys, \
