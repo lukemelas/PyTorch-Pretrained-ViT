@@ -54,6 +54,7 @@ class ViT(nn.Module):
         in_channels: int = 3, 
         image_size: Optional[int] = None,
         num_classes: Optional[int] = None,
+        visualize: Optional[bool] = False
     ):
         super().__init__()
 
@@ -107,7 +108,7 @@ class ViT(nn.Module):
         
         # Transformer
         self.transformer = Transformer(num_layers=num_layers, dim=dim, num_heads=num_heads, 
-                                       ff_dim=ff_dim, dropout=dropout_rate)
+                                       ff_dim=ff_dim, dropout=dropout_rate, visualize=visualize)
         
         # Representation layer
         if representation_size and load_repr_layer:
@@ -136,6 +137,8 @@ class ViT(nn.Module):
                 resize_positional_embedding=(image_size != pretrained_image_size),
             )
         
+        self.visualize = visualize
+        
     @torch.no_grad()
     def init_weights(self):
         def _init(m):
@@ -162,12 +165,15 @@ class ViT(nn.Module):
             x = torch.cat((self.class_token.expand(b, -1, -1), x), dim=1)  # b,gh*gw+1,d
         if hasattr(self, 'positional_embedding'): 
             x = self.positional_embedding(x)  # b,gh*gw+1,d 
-        x = self.transformer(x)  # b,gh*gw+1,d
+        x, scores = self.transformer(x)  # b,gh*gw+1,d
         if hasattr(self, 'pre_logits'):
-            x = self.pre_logits(x)
-            x = torch.tanh(x)
+            x = self.pre_logits(x) # b, d
+            x = torch.tanh(x) # b, d
         if hasattr(self, 'fc'):
             x = self.norm(x)[:, 0]  # b,d
             x = self.fc(x)  # b,num_classes
-        return x
+        if self.visualize:
+            return x, scores
+        else:
+            return x
 

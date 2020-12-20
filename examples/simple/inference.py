@@ -25,6 +25,7 @@ labels_map = [labels_map[str(i)] for i in range(1000)]
 model.eval()
 with torch.no_grad():
     outputs = model(img).squeeze(0)
+print(outputs.shape)
 print('-----')
 for idx in torch.topk(outputs, k=3).indices.tolist():
     prob = torch.softmax(outputs, -1)[idx].item()
