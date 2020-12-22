@@ -1,8 +1,9 @@
 # ViT PyTorch
 
+Forked from [Luke Melas-Kyriazi repository](https://github.com/lukemelas/PyTorch-Pretrained-ViT). 
+
 ### Changes compared to original
 
-* Forked from [Luke Melas-Kyriazi repository](https://github.com/lukemelas/PyTorch-Pretrained-ViT). 
 * Added support for 'H-14' and L'16' ViT models.
 * Added support for downloading the models directly from Google's cloud storage.
 * Corrected the Jax to Pytorch weights transformation. Previous methodology would lead to .pth state_dict files without the 'representation layer'. `ViT('load_repr_layer'=True)` would lead to an error. If only interested in inference the representation layer was unnecessary as discussed in the original paper for the Vision Transformer, but for other applications and experiments it may be useful so I added a `download_convert_models.py` to first download the required models, convert them with all the weights, and then you can completely tune the parameters.
