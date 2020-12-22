@@ -1,5 +1,12 @@
 # ViT PyTorch
 
+* Forked from [Luke Melas-Kyriazi repository](https://github.com/lukemelas/PyTorch-Pretrained-ViT). 
+* Added support for 'H-14' and L'16' ViT models.
+* Added support for downloading the models directly from Google's cloud storage.
+* Corrected the Jax to Pytorch weights transformation. Previous methodology would lead to .pth state_dict files without the 'representation layer'. `ViT('load_repr_layer'=True)` would lead to an error. If only interested in inference the representation layer was unnecessary as discussed in the original paper for the Vision Transformer, but for other applications and experiments it may be useful so I added a `download_convert_models.py` to first download the required models, convert them with all the weights, and then you can completely tune the parameters.
+* Added support for visualizing attention, by returning the scores values in the multi-head self-attention layers. The visualizing script was mostly taken from [jeonsworld/ViT-pytorch repository](https://github.com/jeonsworld/ViT-pytorch).
+* Added examples for inference (single image), and fine-tuning/training (using CIFAR-10).
+
 ### Quickstart
 
 Install with `pip install pytorch_pretrained_vit` and load a pretrained ViT with:
@@ -11,7 +18,7 @@ model = ViT('B_16_imagenet1k', pretrained=True)
 Or find a Google Colab example [here](https://colab.research.google.com/drive/1muZ4QFgVfwALgqmrfOkp7trAvqDemckO?usp=sharing).  
 
 ### Overview
-This repository contains an op-for-op PyTorch reimplementation of the [Visual Transformer](https://openreview.net/forum?id=YicbFdNTTy) architecture from [Google](https://github.com/google-research/vision_transformer), along with pre-trained models and examples.
+This repository contains an op-for-op PyTorch reimplementation of the [Vision Transformer](https://openreview.net/forum?id=YicbFdNTTy) architecture from [Google](https://github.com/google-research/vision_transformer), along with pre-trained models and examples.
 
 The goal of this implementation is to be simple, highly extensible, and easy to integrate into your own projects. 
 
@@ -83,8 +90,9 @@ Details about the models are below:
 |:-----------------:|:---------------:|:------------:|:-----------:|
 | `B_16`            |  ImageNet-21k   | -            |      ✓      |
 | `B_32`            |  ImageNet-21k   | -            |      ✓      |
-| `L_16`            |  ImageNet-21k   | -            |      -      |
+| `L_16`            |  ImageNet-21k   | -            |      ✓      |
 | `L_32`            |  ImageNet-21k   | -            |      ✓      |
+| `H_14`            |  ImageNet-21k   | -            |      ✓      |
 | `B_16_imagenet1k` |  ImageNet-21k   | ImageNet-1k  |      ✓      |
 | `B_32_imagenet1k` |  ImageNet-21k   | ImageNet-1k  |      ✓      |
 | `L_16_imagenet1k` |  ImageNet-21k   | ImageNet-1k  |      ✓      |
@@ -171,6 +179,7 @@ See `examples/imagenet` for details about evaluating on ImageNet.
 Other great repositories with this model include: 
  - [Ross Wightman's repo](https://github.com/rwightman/pytorch-image-models)
  - [Phil Wang's repo](https://github.com/lucidrains/vit-pytorch)
+ - [Eunkwang Jeon's repo](https://github.com/jeonsworld/ViT-pytorch)
 
 ### Contributing
 
