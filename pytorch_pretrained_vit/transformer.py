@@ -34,8 +34,7 @@ class MultiHeadedSelfAttention(nn.Module):
         self.drop = nn.Dropout(dropout)
         self.n_heads = num_heads
         self.visualize = visualize
-        self.scores = None
-
+        
     def forward(self, x, mask):
         """
         x, q(query), k(key), v(value) : (B(batch_size), S(seq_len), D(dim))
@@ -50,15 +49,16 @@ class MultiHeadedSelfAttention(nn.Module):
         if mask is not None:
             mask = mask[:, None, None, :].float()
             scores -= 10000.0 * (1.0 - mask)
-        scores = self.drop(F.softmax(scores, dim=-1)) 
         # this is what's used to visualize attention
-        if self.visualize:
-            self.scores = scores
+        scores = self.drop(F.softmax(scores, dim=-1)) 
         # (B, H, S, S) @ (B, H, S, W) -> (B, H, S, W) -trans-> (B, S, H, W)
         h = (scores @ v).transpose(1, 2).contiguous()
         # -merge-> (B, S, D)
         h = merge_last(h, 2)
-        return h, self.scores
+        if self.visualize:
+            return h, scores
+        else:
+            return h
 
 
 class PositionWiseFeedForward(nn.Module):
@@ -84,17 +84,20 @@ class Block(nn.Module):
         self.norm2 = nn.LayerNorm(dim, eps=1e-6)
         self.drop = nn.Dropout(dropout)
         self.visualize = visualize
-        self.scores = None
-
+        
     def forward(self, x, mask):
-        h, scores = self.attn(self.norm1(x), mask) # eq 1
         if self.visualize:
-            self.scores = scores
+            h, scores = self.attn(self.norm1(x), mask) # eq 1
+        else:
+            h = self.attn(self.norm1(x), mask) # eq 1
         h = self.drop(self.proj(h)) # eq 1
         x = x + h # eq 2
         h = self.drop(self.pwff(self.norm2(x))) # eq 3
         x = x + h # eq 3
-        return x, self.scores
+        if self.visualize:
+            return x, scores
+        else:
+            return x
 
 
 class Transformer(nn.Module):
@@ -108,7 +111,12 @@ class Transformer(nn.Module):
 
     def forward(self, x, mask=None):
         for block in self.blocks:
-            x, scores = block(x, mask)
             if self.visualize:
+                x, scores = block(x, mask)
                 self.scores.append(scores)
-        return x, self.scores
+            else:
+                x = block(x, mask)
+        if self.visualize:
+            return x, self.scores
+        else:
+            return x

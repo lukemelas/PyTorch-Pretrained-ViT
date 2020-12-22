@@ -185,7 +185,7 @@ def load_pretrained_weights(
             raise ValueError(f'Pretrained model for {model_name} has not yet been released')
     else:
         state_dict = torch.load(weights_path)
-    
+
     # Modifications to load partial state dict
     expected_missing_keys = []
     if ('patch_embedding.weight' in state_dict) and (load_first_conv==False):
@@ -210,14 +210,24 @@ def load_pretrained_weights(
     # Load state dict
     ret = model.load_state_dict(state_dict, strict=False)
     if strict:
-        assert set(ret.missing_keys) == set(expected_missing_keys), \
-            'Missing keys when loading pretrained weights: {}'.format(ret.missing_keys)
+        for key in ret.missing_keys:
+            assert key in expected_missing_keys, \
+            '''
+            Missing keys when loading pretrained weights: {}
+            Expected missing keys: {}
+            '''.format(ret.missing_keys, expected_missing_keys)
         assert not ret.unexpected_keys, \
-            'Missing keys when loading pretrained weights: {}'.format(ret.unexpected_keys)
+            '''Missing keys when loading pretrained weights: {}
+            Expected missing keys: {}
+            '''.format(ret.missing_keys, expected_missing_keys)
         maybe_print('Loaded pretrained weights.', verbose)
     else:
-        maybe_print('Missing keys when loading pretrained weights: {}'.format(ret.missing_keys), verbose)
-        maybe_print('Unexpected keys when loading pretrained weights: {}'.format(ret.unexpected_keys), verbose)
+        maybe_print('''Missing keys when loading pretrained weights: {}
+            Expected missing keys: {}
+            '''.format(ret.missing_keys, expected_missing_keys), verbose)
+        maybe_print('''Missing keys when loading pretrained weights: {}
+            Expected missing keys: {}
+            '''.format(ret.missing_keys, expected_missing_keys), verbose)
         return ret
 
 

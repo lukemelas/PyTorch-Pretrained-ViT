@@ -165,10 +165,13 @@ class ViT(nn.Module):
             x = torch.cat((self.class_token.expand(b, -1, -1), x), dim=1)  # b,gh*gw+1,d
         if hasattr(self, 'positional_embedding'): 
             x = self.positional_embedding(x)  # b,gh*gw+1,d 
-        x, scores = self.transformer(x)  # b,gh*gw+1,d
+        if self.visualize:
+            x, scores = self.transformer(x)  # b,gh*gw+1,d
+        else:
+            x = self.transformer(x)
         if hasattr(self, 'pre_logits'):
-            x = self.pre_logits(x) # b, d
-            x = torch.tanh(x) # b, d
+            x = self.pre_logits(x) # b,d
+            x = torch.tanh(x) # b,d
         if hasattr(self, 'fc'):
             x = self.norm(x)[:, 0]  # b,d
             x = self.fc(x)  # b,num_classes

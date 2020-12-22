@@ -1,14 +1,12 @@
 import matplotlib.pyplot as plt 
 import numpy as np
-import json
-from PIL import Image
 
 import torch
 import torchvision
 import torchvision.transforms as transforms
 import torch.nn as nn 
-import torch.nn.functional as F
 import torch.optim as optim
+from torchsummary import summary
 
 from pytorch_pretrained_vit import ViT
 
@@ -24,6 +22,7 @@ torch.manual_seed(0)
 
 # train constants
 no_epochs = 20
+batch_size = 64
 classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 no_classes = len(classes)
@@ -31,7 +30,7 @@ no_classes = len(classes)
 # define model
 models_list = ['B_16', 'B_32', 'L_32', 'B_16_imagenet1k', 'B_32_imagenet1k', 'L_16_imagenet1k', 'L_32_imagenet1k']
 model_name = models_list[0]
-model = ViT(model_name, pretrained=True, num_classes=no_classes, image_size=128)
+model = ViT(model_name, pretrained=True, num_classes=no_classes, load_repr_layer=True)
 model.to(device)
 
 # load images
@@ -40,12 +39,12 @@ transforms.ToTensor(), transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
 
 trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                         download=True, transform=tfms)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                           shuffle=True, num_workers=2)
 
 testset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                        download=True, transform=tfms)
-testloader = torch.utils.data.DataLoader(testset, batch_size=4,
+testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
                                          shuffle=False, num_workers=2)
 
 # get some random training images
@@ -61,6 +60,9 @@ print(' '.join('{}'.format(labels[j]) for j in range(4)))
 # define loss and optimizer
 criterion = nn.CrossEntropyLoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+
+# summarize model parameters
+summary(model, images.shape[1:])
 
 # training loop
 for epoch in range(no_epochs):  # loop over the dataset multiple times
