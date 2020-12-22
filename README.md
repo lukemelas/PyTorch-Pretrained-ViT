@@ -1,5 +1,7 @@
 # ViT PyTorch
 
+### Changes compared to original
+
 * Forked from [Luke Melas-Kyriazi repository](https://github.com/lukemelas/PyTorch-Pretrained-ViT). 
 * Added support for 'H-14' and L'16' ViT models.
 * Added support for downloading the models directly from Google's cloud storage.
