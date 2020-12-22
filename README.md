@@ -177,9 +177,11 @@ See `examples/imagenet` for details about evaluating on ImageNet.
 #### Credit
 
 Other great repositories with this model include: 
+ - [Google Research's repo](https://github.com/google-research/vision_transformer)
  - [Ross Wightman's repo](https://github.com/rwightman/pytorch-image-models)
  - [Phil Wang's repo](https://github.com/lucidrains/vit-pytorch)
  - [Eunkwang Jeon's repo](https://github.com/jeonsworld/ViT-pytorch)
+ - [Luke Melas-Kyriazi repo](https://github.com/lukemelas/PyTorch-Pretrained-ViT)
 
 ### Contributing
 
