@@ -61,7 +61,7 @@ class ViT(nn.Module):
         if name is None:
             check_msg = 'must specify name of pretrained model'
             assert not pretrained, check_msg
-            assert not resize_positional_embedding, check_msg
+#             assert not resize_positional_embedding, check_msg
             if num_classes is None:
                 num_classes = 1000
             if image_size is None:
