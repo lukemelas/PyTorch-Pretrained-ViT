@@ -13,7 +13,7 @@ from torch.hub import get_dir, urlparse, download_url_to_file, _is_legacy_zip_fo
 from torchvision import transforms
 
 import pytorch_pretrained_vit
-from .configs import PRETRAINED_MODELS
+from .configs import PRETRAINED_CONFIGS, ViTConfigExtended
 
 def jax_to_pytorch(k):
     k = k.replace('Transformer/encoder_norm', 'norm')
@@ -79,7 +79,9 @@ def convert_single(name, filename):
     npz = np.load(filename)
 
     # Load PyTorch model
-    model = pytorch_pretrained_vit.ViT(name=name, pretrained=False, load_repr_layer=True)
+    def_config = PRETRAINED_CONFIGS['{}'.format(name)]['config']
+    configuration = ViTConfigExtended(**def_config)
+    model = pytorch_pretrained_vit.ViT(configuration, name=name, pretrained=False, load_repr_layer=True)
 
     # Convert weights
     new_state_dict = convert(npz, model.state_dict())
@@ -160,7 +162,7 @@ def load_pretrained_weights(
     load_repr_layer=False,
     resize_positional_embedding=False,
     verbose=True,
-    strict=True
+    strict=False
 ):
     """Loads pretrained weights from weights path or download using url.
     Args:
@@ -178,7 +180,7 @@ def load_pretrained_weights(
     
     # Load or download weights
     if weights_path is None:
-        url = PRETRAINED_MODELS[model_name]['url_og']
+        url = PRETRAINED_CONFIGS[model_name]['url_og']
         if url:
             state_dict = download_load(model_name, url, file_name=model_name)
         else:
@@ -217,17 +219,16 @@ def load_pretrained_weights(
             Expected missing keys: {}
             '''.format(ret.missing_keys, expected_missing_keys)
         assert not ret.unexpected_keys, \
-            '''Missing keys when loading pretrained weights: {}
-            Expected missing keys: {}
-            '''.format(ret.missing_keys, expected_missing_keys)
+            '''Unexpected keys when loading pretrained weights: {}
+            '''.format(ret.unexpected_keys)
         maybe_print('Loaded pretrained weights.', verbose)
     else:
         maybe_print('''Missing keys when loading pretrained weights: {}
             Expected missing keys: {}
             '''.format(ret.missing_keys, expected_missing_keys), verbose)
-        maybe_print('''Missing keys when loading pretrained weights: {}
-            Expected missing keys: {}
-            '''.format(ret.missing_keys, expected_missing_keys), verbose)
+        maybe_print('''Unexpected keys when loading pretrained weights: {}
+            '''.format(ret.unexpected_keys), verbose)
+        maybe_print('Loaded pretrained weights.', verbose)
         return ret
 
 

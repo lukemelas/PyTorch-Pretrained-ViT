@@ -26,14 +26,14 @@ def merge_last(x, n_dims):
 
 class MultiHeadedSelfAttention(nn.Module):
     """Multi-Headed Dot Product Attention"""
-    def __init__(self, dim, num_heads, dropout, visualize):
+    def __init__(self, dim, num_heads, dropout, ret_attn_scores):
         super().__init__()
         self.proj_q = nn.Linear(dim, dim)
         self.proj_k = nn.Linear(dim, dim)
         self.proj_v = nn.Linear(dim, dim)
         self.drop = nn.Dropout(dropout)
         self.n_heads = num_heads
-        self.visualize = visualize
+        self.ret_attn_scores = ret_attn_scores
         
     def forward(self, x, mask):
         """
@@ -55,7 +55,7 @@ class MultiHeadedSelfAttention(nn.Module):
         h = (scores @ v).transpose(1, 2).contiguous()
         # -merge-> (B, S, D)
         h = merge_last(h, 2)
-        if self.visualize:
+        if self.ret_attn_scores:
             return h, scores
         else:
             return h
@@ -75,18 +75,19 @@ class PositionWiseFeedForward(nn.Module):
 
 class Block(nn.Module):
     """Transformer Block"""
-    def __init__(self, dim, num_heads, ff_dim, dropout, visualize):
+    def __init__(self, dim, num_heads, ff_dim, hidden_dropout_prob, 
+    attention_probs_dropout_prob, layer_norm_eps, ret_attn_scores):
         super().__init__()
-        self.attn = MultiHeadedSelfAttention(dim, num_heads, dropout, visualize)
+        self.attn = MultiHeadedSelfAttention(dim, num_heads, attention_probs_dropout_prob, ret_attn_scores)
         self.proj = nn.Linear(dim, dim)
-        self.norm1 = nn.LayerNorm(dim, eps=1e-6)
+        self.norm1 = nn.LayerNorm(dim, eps=layer_norm_eps)
         self.pwff = PositionWiseFeedForward(dim, ff_dim)
-        self.norm2 = nn.LayerNorm(dim, eps=1e-6)
-        self.drop = nn.Dropout(dropout)
-        self.visualize = visualize
+        self.norm2 = nn.LayerNorm(dim, eps=layer_norm_eps)
+        self.drop = nn.Dropout(hidden_dropout_prob)
+        self.ret_attn_scores = ret_attn_scores
         
     def forward(self, x, mask):
-        if self.visualize:
+        if self.ret_attn_scores:
             h, scores = self.attn(self.norm1(x), mask) # eq 1
         else:
             h = self.attn(self.norm1(x), mask) # eq 1
@@ -94,7 +95,7 @@ class Block(nn.Module):
         x = x + h # eq 2
         h = self.drop(self.pwff(self.norm2(x))) # eq 3
         x = x + h # eq 3
-        if self.visualize:
+        if self.ret_attn_scores:
             return x, scores
         else:
             return x
@@ -102,21 +103,23 @@ class Block(nn.Module):
 
 class Transformer(nn.Module):
     """Transformer with Self-Attentive Blocks"""
-    def __init__(self, num_layers, dim, num_heads, ff_dim, dropout, visualize):
+    def __init__(self, num_layers, dim, num_heads, ff_dim, hidden_dropout_prob, 
+    attention_probs_dropout_prob, layer_norm_eps, ret_attn_scores):
         super().__init__()
         self.blocks = nn.ModuleList([
-            Block(dim, num_heads, ff_dim, dropout, visualize) for _ in range(num_layers)])
-        self.visualize = visualize
+            Block(dim, num_heads, ff_dim, hidden_dropout_prob, 
+            attention_probs_dropout_prob, layer_norm_eps, ret_attn_scores) for _ in range(num_layers)])
+        self.ret_attn_scores = ret_attn_scores
         self.scores = []
 
     def forward(self, x, mask=None):
         for block in self.blocks:
-            if self.visualize:
+            if self.ret_attn_scores:
                 x, scores = block(x, mask)
                 self.scores.append(scores)
             else:
                 x = block(x, mask)
-        if self.visualize:
+        if self.ret_attn_scores:
             return x, self.scores
         else:
             return x
