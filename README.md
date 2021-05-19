@@ -38,6 +38,18 @@ configuration.num_hidden_layers = 3
 model = ViT_modified(config=configuration, name='B_16', pretrained=True)
 # for another example see examples/configurations/load_configs.py
 ```
+* Added support to partially load ViT
+```
+model = ViT(config=configuration, name='B_16')
+pretrained_mode = 'full_tokenizer'
+weights_path = "/hdd/edwin/support/torch/hub/checkpoints/B_16.pth"
+model.load_partial(weights_path=weights_path, pretrained_image_size=configuration.pretrained_image_size, 
+pretrained_mode=pretrained_mode, verbose=True)
+for pretrained_mode in ['full_tokenizer', 'patchprojection', 'posembeddings', 'clstoken', 
+        'patchandposembeddings', 'patchandclstoken', 'posembeddingsandclstoken']:
+     model.load_partial(weights_path=weights_path, 
+     pretrained_image_size=configuration.pretrained_image_size, pretrained_mode=pretrained_mode, verbose=True)
+```
 
 ### About
 
