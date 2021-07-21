@@ -39,6 +39,7 @@ class ViT(nn.Module):
         self, config,
         name: str = None, 
         pretrained: bool = False,
+        load_fc_layer: bool = True,
         load_repr_layer: bool = False,
         ret_attn_scores: bool = False,
     ):
@@ -74,8 +75,9 @@ class ViT(nn.Module):
             pre_logits_size = self.config.hidden_size
         
         # Classifier head
-        self.norm = nn.LayerNorm(pre_logits_size, eps=self.config.layer_norm_eps)
-        self.fc = nn.Linear(pre_logits_size, self.config.num_classes)
+        if load_fc_layer:
+            self.norm = nn.LayerNorm(pre_logits_size, eps=self.config.layer_norm_eps)
+            self.fc = nn.Linear(pre_logits_size, self.config.num_classes)
 
         # Initialize weights
         self.init_weights()
@@ -107,8 +109,9 @@ class ViT(nn.Module):
                 if hasattr(m, 'bias') and m.bias is not None:
                     nn.init.normal_(m.bias, std=1e-6)  # nn.init.constant(m.bias, 0)
         self.apply(_init)
-        nn.init.constant_(self.fc.weight, 0)
-        nn.init.constant_(self.fc.bias, 0)
+        if hasattr(self, 'fc'):
+            nn.init.constant_(self.fc.weight, 0)
+            nn.init.constant_(self.fc.bias, 0)
         nn.init.normal_(self.positional_embedding.pos_embedding, std=0.02)  # _trunc_normal(self.positional_embedding.pos_embedding, std=0.02)
         nn.init.constant_(self.class_token, 0)
 
