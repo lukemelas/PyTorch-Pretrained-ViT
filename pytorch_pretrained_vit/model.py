@@ -45,7 +45,8 @@ class ViT(nn.Module):
     ):
         super().__init__()
         config.calc_pre_dims()
-        self.config = deepcopy(config)
+        self.config = config
+        #self.config = deepcopy(config)
 
         # Patch embedding
         self.patch_embedding = nn.Conv2d(
