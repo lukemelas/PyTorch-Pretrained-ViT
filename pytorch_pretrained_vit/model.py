@@ -42,17 +42,21 @@ class ViT(nn.Module):
         load_fc_layer: bool = True,
         load_repr_layer: bool = False,
         ret_attn_scores: bool = False,
+        conv_patching: bool = False
     ):
         super().__init__()
         config.calc_pre_dims()
         self.config = config
         #self.config = deepcopy(config)
-
-        # Patch embedding
-        self.patch_embedding = nn.Conv2d(
-            in_channels=self.config.num_channels, out_channels=self.config.hidden_size, 
-            kernel_size=(self.config.fh, self.config.fw), stride=(self.config.fh, self.config.fw))
         
+        # Patch embedding
+        if conv_patching == False:
+            self.patch_embedding = nn.Conv2d(
+                in_channels=self.config.num_channels, out_channels=self.config.hidden_size, 
+                kernel_size=(self.config.fh, self.config.fw), stride=(self.config.fh, self.config.fw))
+        else:
+            self.patch_embedding = ConvPatchingStem(config)
+
         # Class token
         if self.config.classifier == 'token':
             self.class_token = nn.Parameter(torch.zeros(1, 1, self.config.hidden_size))
@@ -191,3 +195,51 @@ class ViT(nn.Module):
             ret = self.load_state_dict(state_dict, strict=False)
             maybe_print('Missing keys when loading pretrained weights: {}'.format(ret.missing_keys), verbose)
             maybe_print('Unexpected keys when loading pretrained weights: {}'.format(ret.unexpected_keys), verbose)
+
+
+class ConvLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, 
+    kernel_size=3, stride=2, padding=1, activation='relu', norm='batchnorm'):
+        super(ConvLayer, self).__init__()
+
+        if in_channels == out_channels:
+            stride = 1
+            
+        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, 
+            kernel_size=(kernel_size, kernel_size), stride=(stride, stride), padding=(padding, padding))
+        if activation == 'relu':
+            self.activation = nn.ReLU()
+        if norm == 'batchnorm':
+            self.norm = nn.BatchNorm2d(out_channels)
+
+    def forward(self, x):
+        x = self.conv(x) 
+        if hasattr(self, 'activation'):
+            x = self.activation(x)
+        if hasattr(self, 'norm'):
+            x = self.norm(x)
+        return x
+
+
+class ConvPatchingStem(nn.Module):
+    def __init__(self, config):
+        super(ConvPatchingStem, self).__init__()
+
+        channels_in_list = [config.num_channels, 64, 128, 128, 256, 256]
+        channels_out_list = [64, 128, 128, 256, 256, 512]
+
+        self.conv3x3layers = nn.ModuleList([
+            ConvLayer(channels_in, channels_out)
+            for (channels_in, channels_out) in zip(channels_in_list, channels_out_list)
+        ])
+
+        self.conv1x1 = nn.Conv2d(512, config.hidden_size, kernel_size=1, stride=1, padding=0, bias=False)
+
+    def forward(self, x):
+        #print(x.shape)
+        for layer in self.conv3x3layers: 
+            x = layer(x)
+            #print(x.shape)
+        x = self.conv1x1(x)
+        #print(x.shape)
+        return x
