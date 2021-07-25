@@ -7,6 +7,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+import einops
+
 from .transformer import Transformer
 from .utils import load_pretrained_weights, as_tuple, maybe_print, resize_positional_embedding_
 from .configs import PRETRAINED_CONFIGS
@@ -42,11 +44,14 @@ class ViT(nn.Module):
         load_fc_layer: bool = True,
         load_repr_layer: bool = False,
         ret_attn_scores: bool = False,
-        conv_patching: bool = False
+        conv_patching: bool = False,
+        ret_image_patchified: bool = False
     ):
         super().__init__()
         config.calc_pre_dims()
         self.config = config
+        self.ret_attn_scores = ret_attn_scores
+        self.ret_image_patchified = ret_image_patchified
         #self.config = deepcopy(config)
         
         # Patch embedding
@@ -104,8 +109,6 @@ class ViT(nn.Module):
                 resize_positional_embedding=(self.config.image_size != pretrained_image_size),
             )
         
-        self.ret_attn_scores = ret_attn_scores
-        
     @torch.no_grad()
     def init_weights(self):
         def _init(m):
@@ -122,15 +125,15 @@ class ViT(nn.Module):
 
     def forward(self, x):
         """Breaks image into patches, applies transformer, applies MLP head.
-
         Args:
             x (tensor): `b,c,fh,fw`
         """
         b, c, fh, fw = x.shape
         x = self.patch_embedding(x)  # b,d,gh,gw
-        x = x.flatten(2).transpose(1, 2)  # b,gh*gw,d
+        image_patchified = x.flatten(2).transpose(1, 2)  # b,gh*gw,d
+        #image_patchified = einops.rearrange(x, 'b d gh gw -> b (gh gw) d')
         if hasattr(self, 'class_token'):
-            x = torch.cat((self.class_token.expand(b, -1, -1), x), dim=1)  # b,gh*gw+1,d
+            x = torch.cat((self.class_token.expand(b, -1, -1), image_patchified), dim=1)  # b,gh*gw+1,d
         if hasattr(self, 'positional_embedding'): 
             x = self.positional_embedding(x)  # b,gh*gw+1,d 
         if self.ret_attn_scores:
@@ -143,7 +146,11 @@ class ViT(nn.Module):
         if hasattr(self, 'fc'):
             x = self.norm(x)[:, 0]  # b,d
             x = self.fc(x)  # b,num_classes
-        if self.ret_attn_scores:
+        if self.ret_image_patchified and self.ret_attn_scores:
+            return x, scores, image_patchified
+        elif self.ret_image_patchified:
+            return x, image_patchified
+        elif self.ret_attn_scores:
             return x, scores
         else:
             return x
