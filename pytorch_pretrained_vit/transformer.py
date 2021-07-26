@@ -104,22 +104,35 @@ class Block(nn.Module):
 class Transformer(nn.Module):
     """Transformer with Self-Attentive Blocks"""
     def __init__(self, num_layers, dim, num_heads, ff_dim, hidden_dropout_prob, 
-    attention_probs_dropout_prob, layer_norm_eps, ret_attn_scores):
+    attention_probs_dropout_prob, layer_norm_eps, ret_attn_scores, ret_interm_repr):
         super().__init__()
         self.blocks = nn.ModuleList([
             Block(dim, num_heads, ff_dim, hidden_dropout_prob, 
             attention_probs_dropout_prob, layer_norm_eps, ret_attn_scores) for _ in range(num_layers)])
+        
         self.ret_attn_scores = ret_attn_scores
-        self.scores = []
+        self.ret_interm_repr = ret_interm_repr
 
     def forward(self, x, mask=None):
+        if self.ret_attn_scores:
+            scores_list = []
+        if self.ret_interm_repr:
+            interm_repr_list = []
+
         for block in self.blocks:
             if self.ret_attn_scores:
                 x, scores = block(x, mask)
-                self.scores.append(scores)
+                scores_list.append(scores)
             else:
                 x = block(x, mask)
-        if self.ret_attn_scores:
-            return x, self.scores
+            if self.ret_interm_repr:
+                interm_repr_list.append(x)
+
+        if self.ret_interm_repr and self.ret_attn_scores:
+            return x, interm_repr_list, scores_list
+        elif self.ret_interm_repr:
+            return x, interm_repr_list
+        elif self.ret_attn_scores:
+            return x, scores_list
         else:
             return x

@@ -45,7 +45,8 @@ class ViT(nn.Module):
         load_repr_layer: bool = False,
         ret_attn_scores: bool = False,
         conv_patching: bool = False,
-        ret_image_patchified: bool = False
+        ret_image_patchified: bool = False,
+        ret_interm_repr: bool = False
     ):
         super().__init__()
         config.calc_pre_dims()
@@ -75,7 +76,7 @@ class ViT(nn.Module):
         self.transformer = Transformer(num_layers=self.config.num_hidden_layers, dim=self.config.hidden_size, 
             num_heads=self.config.num_attention_heads, ff_dim=self.config.intermediate_size, 
             hidden_dropout_prob=self.config.hidden_dropout_prob, attention_probs_dropout_prob=self.config.attention_probs_dropout_prob,
-            layer_norm_eps=self.config.layer_norm_eps, ret_attn_scores=ret_attn_scores)
+            layer_norm_eps=self.config.layer_norm_eps, ret_attn_scores=ret_attn_scores, ret_interm_repr=ret_interm_repr)
         
         # Representation layer
         if self.config.representation_size and load_repr_layer:
@@ -109,6 +110,8 @@ class ViT(nn.Module):
                 resize_positional_embedding=(self.config.image_size != pretrained_image_size),
             )
         
+        self.ret_interm_repr = ret_interm_repr
+        
     @torch.no_grad()
     def init_weights(self):
         def _init(m):
@@ -132,26 +135,46 @@ class ViT(nn.Module):
         x = self.patch_embedding(x)  # b,d,gh,gw
         image_patchified = x.flatten(2).transpose(1, 2)  # b,gh*gw,d
         #image_patchified = einops.rearrange(x, 'b d gh gw -> b (gh gw) d')
+        
         if hasattr(self, 'class_token'):
             x = torch.cat((self.class_token.expand(b, -1, -1), image_patchified), dim=1)  # b,gh*gw+1,d
         if hasattr(self, 'positional_embedding'): 
             x = self.positional_embedding(x)  # b,gh*gw+1,d 
-        if self.ret_attn_scores:
+        
+        if self.ret_interm_repr and self.ret_attn_scores:
+            x, interm_repr, scores = self.transformer(x)
+        elif self.ret_interm_repr:
+            x, interm_repr = self.transformer(x)
+        elif self.ret_attn_scores:
             x, scores = self.transformer(x)  # b,gh*gw+1,d
         else:
             x = self.transformer(x)
+        
         if hasattr(self, 'pre_logits'):
             x = self.pre_logits(x) # b,d
             x = torch.tanh(x) # b,d
+        
         if hasattr(self, 'fc'):
             x = self.norm(x)[:, 0]  # b,d
             x = self.fc(x)  # b,num_classes
-        if self.ret_image_patchified and self.ret_attn_scores:
+        
+        if self.ret_image_patchified and self.ret_interm_repr and self.ret_attn_scores:
+            return x, interm_repr, scores, image_patchified
+        
+        elif self.ret_interm_repr and self.ret_attn_scores:
+            return x, interm_repr, scores
+        elif self.ret_interm_repr and self.ret_image_patchified:
+            return x, interm_repr, image_patchified
+        elif self.ret_image_patchified and self.ret_attn_scores:
             return x, scores, image_patchified
+        
+        elif self.ret_interm_repr:
+            return x, interm_repr
         elif self.ret_image_patchified:
             return x, image_patchified
         elif self.ret_attn_scores:
             return x, scores
+        
         else:
             return x
 
