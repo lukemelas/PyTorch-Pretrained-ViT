@@ -6,6 +6,7 @@ from copy import deepcopy
 import torch
 from torch import nn
 from torch.nn import functional as F
+from transformers.models.bert.modeling_bert import BertConfig, BertEmbeddings
 
 import einops
 
@@ -46,7 +47,8 @@ class ViT(nn.Module):
         ret_attn_scores: bool = False,
         conv_patching: bool = False,
         ret_image_patchified: bool = False,
-        ret_interm_repr: bool = False
+        ret_interm_repr: bool = False,
+        multimodal: bool = False,
     ):
         super().__init__()
         config.calc_pre_dims()
@@ -72,6 +74,18 @@ class ViT(nn.Module):
         if self.config.pos_embedding_type == 'learned':
             self.positional_embedding = LearnedPositionalEmbedding1D(self.config.seq_len, self.config.hidden_size)
         
+        # Text embedding
+        if multimodal:
+            bert_config = BertConfig(
+                # vocab_size is default for bert_base 30,522
+                hidden_size=self.config.hidden_size,
+                max_position_embeddings=self.config.max_text_seq_len,
+                layer_norm_eps=self.config.layer_norm_eps,
+                hidden_dropout_prob=self.config.hidden_dropout_prob
+            )
+            self.text_embeddings = BertEmbeddings(bert_config)
+            self.config.seq_len += self.config.max_text_seq_len
+
         # Transformer
         self.transformer = Transformer(num_layers=self.config.num_hidden_layers, dim=self.config.hidden_size, 
             num_heads=self.config.num_attention_heads, ff_dim=self.config.intermediate_size, 
@@ -126,29 +140,36 @@ class ViT(nn.Module):
         nn.init.normal_(self.positional_embedding.pos_embedding, std=0.02)  # _trunc_normal(self.positional_embedding.pos_embedding, std=0.02)
         nn.init.constant_(self.class_token, 0)
 
-    def forward(self, x):
+    def forward(self, images, text=None, mask=None):
         """Breaks image into patches, applies transformer, applies MLP head.
         Args:
-            x (tensor): `b,c,fh,fw`
+            images (tensor): `b,c,fh,fw`
+            text (tensor): b, max_text_seq_len
+            mask (bool tensor): (B(batch_size) x S(seq_len))
         """
-        b, c, fh, fw = x.shape
-        x = self.patch_embedding(x)  # b,d,gh,gw
-        image_patchified = x.flatten(2).transpose(1, 2)  # b,gh*gw,d
+        b, c, fh, fw = images.shape
+        images = self.patch_embedding(images)  # b,d,gh,gw
+        image_patchified = images.flatten(2).transpose(1, 2)  # b,gh*gw,d
         #image_patchified = einops.rearrange(x, 'b d gh gw -> b (gh gw) d')
         
         if hasattr(self, 'class_token'):
             x = torch.cat((self.class_token.expand(b, -1, -1), image_patchified), dim=1)  # b,gh*gw+1,d
         if hasattr(self, 'positional_embedding'): 
-            x = self.positional_embedding(x)  # b,gh*gw+1,d 
+            x = self.positional_embedding(x)  # b,gh*gw+1,d
+
+        # concatenate text to images
+        if hasattr(self, 'text_embeddings'):
+            text = self.text_embeddings(text) #b, max_text_seq_len > b, max_text_seq_len, d
+            x = torch.cat((x, text), dim=1) #b, gh*gw+1+max_text_seq_len,d
         
         if self.ret_interm_repr and self.ret_attn_scores:
-            x, interm_repr, scores = self.transformer(x)
+            x, interm_repr, scores = self.transformer(x, mask)
         elif self.ret_interm_repr:
-            x, interm_repr = self.transformer(x)
+            x, interm_repr = self.transformer(x, mask)
         elif self.ret_attn_scores:
-            x, scores = self.transformer(x)  # b,gh*gw+1,d
+            x, scores = self.transformer(x, mask)  # b,gh*gw+1,d
         else:
-            x = self.transformer(x)
+            x = self.transformer(x, mask)
         
         if hasattr(self, 'pre_logits'):
             x = self.pre_logits(x) # b,d
