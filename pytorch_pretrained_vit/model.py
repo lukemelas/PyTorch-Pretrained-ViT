@@ -83,6 +83,7 @@ class ViT(nn.Module):
                 layer_norm_eps=self.config.layer_norm_eps,
                 hidden_dropout_prob=self.config.hidden_dropout_prob
             )
+            self.config.vocab_size = bert_config.vocab_size
             self.text_embeddings = BertEmbeddings(bert_config)
             self.config.seq_len += self.config.max_text_seq_len
 
