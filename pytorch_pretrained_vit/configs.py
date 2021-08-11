@@ -2,6 +2,8 @@
 https://github.com/google-research/vision_transformer/blob/master/vit_jax/configs.py
 # HuggingFace's Transformers ViTConfig as baseline for architecture configuration
 # https://huggingface.co/transformers/_modules/transformers/models/vit/configuration_vit.html#ViTConfig
+max_text_seq_len comes from experiments with daf:re where the median number of tokens per image is 32
+vocab_size comes from bert's vocab size: 30,522
 """
 from transformers import ViTConfig
 
@@ -17,7 +19,8 @@ class ViTConfigExtended(ViTConfig):
         pretrained_image_size: int = 224,  
         pretrained_num_channels: int = 3,
         pretrained_num_classes: int = 21843,
-        max_text_seq_len: int = 64, 
+        max_text_seq_len: int = 32,
+        vocab_size: int= 30522, 
         **kwargs):
         super().__init__(**kwargs)
         self.pos_embedding_type = pos_embedding_type
@@ -28,6 +31,7 @@ class ViTConfigExtended(ViTConfig):
         self.pretrained_num_channels = pretrained_num_channels
         self.pretrained_num_classes = pretrained_num_classes
         self.max_text_seq_len = max_text_seq_len
+        self.vocab_size = vocab_size
 
     def calc_pre_dims(self):
 

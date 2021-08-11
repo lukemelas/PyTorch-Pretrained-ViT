@@ -78,12 +78,12 @@ class ViT(nn.Module):
         if multimodal:
             bert_config = BertConfig(
                 # vocab_size is default for bert_base 30,522
+                vocab_size=self.config.vocab_size,
                 hidden_size=self.config.hidden_size,
                 max_position_embeddings=self.config.max_text_seq_len,
                 layer_norm_eps=self.config.layer_norm_eps,
                 hidden_dropout_prob=self.config.hidden_dropout_prob
             )
-            self.config.vocab_size = bert_config.vocab_size
             self.text_embeddings = BertEmbeddings(bert_config)
             self.config.seq_len += self.config.max_text_seq_len
 
