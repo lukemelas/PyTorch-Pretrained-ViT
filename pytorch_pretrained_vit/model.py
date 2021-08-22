@@ -159,28 +159,14 @@ class ViT(nn.Module):
         if hasattr(self, 'text_embeddings'):
             text = self.text_embeddings(text) #b, max_text_seq_len > b, max_text_seq_len, d
             x = torch.cat((x, text), dim=1) #b, gh*gw+1+max_text_seq_len,d
-        
-        if self.ret_interm_repr and self.ret_attn_scores:
-            x, interm_repr, scores = self.transformer(x, mask)
-            if self.ret_images_patchified:
-                return x, interm_repr, scores, images_patchified
-            return x, interm_repr, scores
-        elif self.ret_interm_repr:
-            x, interm_repr = self.transformer(x, mask)
-            if self.ret_images_patchified:
-                return x, interm_repr, images_patchified
-            return x, interm_repr
-        elif self.ret_attn_scores:
-            x, scores = self.transformer(x, mask)  # b,gh*gw+1,d
-            if self.ret_images_patchified:
-                return x, scores, images_patchified
-            return x, scores
-        else:
-            x = self.transformer(x, mask)
-            if self.ret_images_patchified:
-                return x, images_patchified
-            return x        
 
+        # pass tokens and mask to transformer
+        # output can be either a tensor, or a tuple of 2 or 3 tensors (x, interm_repr, scores)
+        transformer_outputs = self.transformer(x, mask)
+        if self.ret_images_patchified:
+            return transformer_outputs, images_patchified
+        return transformer_outputs
+       
     def forward(self, images, text=None, mask=None):
         """Breaks image into patches, applies transformer, applies MLP head.
         Args:
@@ -189,15 +175,16 @@ class ViT(nn.Module):
             mask (bool tensor): (B(batch_size) x S(seq_len))
         """ 
         assert not self.ret_interm_repr, "Use self.extract_features method when self.ret_interm_repr"
+
         if self.ret_attn_scores and self.ret_images_patchified:
-            x, scores, images_patchified = self.extract_features(images, text, mask)
+            (x, scores), images_patchified = self.extract_features(images, text, mask)
         elif self.ret_attn_scores:
             x, scores = self.extract_features(images, text, mask)
         elif self.ret_images_patchified:
             x, images_patchified = self.extract_features(images, text, mask)        
         else:
-            x = self.extract_features(images, text, mask)        
-
+            x = self.extract_features(images, text, mask)
+        
         if hasattr(self, 'pre_logits'):
             x = self.pre_logits(x) # b,d
             x = torch.tanh(x) # b,d
@@ -211,7 +198,7 @@ class ViT(nn.Module):
         elif self.ret_attn_scores:
             return x, scores
         elif self.ret_images_patchified:
-            x, images_patchified
+            return x, images_patchified
         else:
             return x
 
