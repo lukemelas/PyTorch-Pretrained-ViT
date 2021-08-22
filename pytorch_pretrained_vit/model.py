@@ -46,7 +46,7 @@ class ViT(nn.Module):
         load_repr_layer: bool = False,
         ret_attn_scores: bool = False,
         conv_patching: bool = False,
-        ret_image_patchified: bool = False,
+        ret_images_patchified: bool = False,
         ret_interm_repr: bool = False,
         multimodal: bool = False,
     ):
@@ -54,7 +54,7 @@ class ViT(nn.Module):
         config.calc_pre_dims()
         self.config = config
         self.ret_attn_scores = ret_attn_scores
-        self.ret_image_patchified = ret_image_patchified
+        self.ret_images_patchified = ret_images_patchified
         #self.config = deepcopy(config)
         
         # Patch embedding
@@ -141,20 +141,17 @@ class ViT(nn.Module):
         nn.init.normal_(self.positional_embedding.pos_embedding, std=0.02)  # _trunc_normal(self.positional_embedding.pos_embedding, std=0.02)
         nn.init.constant_(self.class_token, 0)
 
-    def forward(self, images, text=None, mask=None):
-        """Breaks image into patches, applies transformer, applies MLP head.
-        Args:
-            images (tensor): `b,c,fh,fw`
-            text (tensor): b, max_text_seq_len
-            mask (bool tensor): (B(batch_size) x S(seq_len))
-        """
+    def extract_patch_representation(self, images):
         b, c, fh, fw = images.shape
         images = self.patch_embedding(images)  # b,d,gh,gw
-        image_patchified = images.flatten(2).transpose(1, 2)  # b,gh*gw,d
-        #image_patchified = einops.rearrange(x, 'b d gh gw -> b (gh gw) d')
+        return einops.rearrange(images, 'b d gh gw -> b (gh gw) d')
+
+    def extract_features(self, images, text=None, mask=None):
+        b, c, fh, fw = images.shape
+        images_patchified = self.extract_patch_representation(images)
         
         if hasattr(self, 'class_token'):
-            x = torch.cat((self.class_token.expand(b, -1, -1), image_patchified), dim=1)  # b,gh*gw+1,d
+            x = torch.cat((self.class_token.expand(b, -1, -1), images_patchified), dim=1)  # b,gh*gw+1,d
         if hasattr(self, 'positional_embedding'): 
             x = self.positional_embedding(x)  # b,gh*gw+1,d
 
@@ -165,13 +162,42 @@ class ViT(nn.Module):
         
         if self.ret_interm_repr and self.ret_attn_scores:
             x, interm_repr, scores = self.transformer(x, mask)
+            if self.ret_images_patchified:
+                return x, interm_repr, scores, images_patchified
+            return x, interm_repr, scores
         elif self.ret_interm_repr:
             x, interm_repr = self.transformer(x, mask)
+            if self.ret_images_patchified:
+                return x, interm_repr, images_patchified
+            return x, interm_repr
         elif self.ret_attn_scores:
             x, scores = self.transformer(x, mask)  # b,gh*gw+1,d
+            if self.ret_images_patchified:
+                return x, scores, images_patchified
+            return x, scores
         else:
             x = self.transformer(x, mask)
-        
+            if self.ret_images_patchified:
+                return x, images_patchified
+            return x        
+
+    def forward(self, images, text=None, mask=None):
+        """Breaks image into patches, applies transformer, applies MLP head.
+        Args:
+            images (tensor): `b,c,fh,fw`
+            text (tensor): b, max_text_seq_len
+            mask (bool tensor): (B(batch_size) x S(seq_len))
+        """ 
+        assert not self.ret_interm_repr, "Use self.extract_features method when self.ret_interm_repr"
+        if self.ret_attn_scores and self.ret_images_patchified:
+            x, scores, images_patchified = self.extract_features(images, text, mask)
+        elif self.ret_attn_scores:
+            x, scores = self.extract_features(images, text, mask)
+        elif self.ret_images_patchified:
+            x, images_patchified = self.extract_features(images, text, mask)        
+        else:
+            x = self.extract_features(images, text, mask)        
+
         if hasattr(self, 'pre_logits'):
             x = self.pre_logits(x) # b,d
             x = torch.tanh(x) # b,d
@@ -180,23 +206,12 @@ class ViT(nn.Module):
             x = self.norm(x)[:, 0]  # b,d
             x = self.fc(x)  # b,num_classes
         
-        if self.ret_image_patchified and self.ret_interm_repr and self.ret_attn_scores:
-            return x, interm_repr, scores, image_patchified
-        
-        elif self.ret_interm_repr and self.ret_attn_scores:
-            return x, interm_repr, scores
-        elif self.ret_interm_repr and self.ret_image_patchified:
-            return x, interm_repr, image_patchified
-        elif self.ret_image_patchified and self.ret_attn_scores:
-            return x, scores, image_patchified
-        
-        elif self.ret_interm_repr:
-            return x, interm_repr
-        elif self.ret_image_patchified:
-            return x, image_patchified
+        if self.ret_attn_scores and self.ret_images_patchified:
+            return x, scores, images_patchified
         elif self.ret_attn_scores:
             return x, scores
-        
+        elif self.ret_images_patchified:
+            x, images_patchified
         else:
             return x
 
