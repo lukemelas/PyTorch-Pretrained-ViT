@@ -5,6 +5,7 @@ tmp
 *.npy
 *.npz*
 *.pth
+.nfs*
 examples/**/data/
 
 # Byte-compiled / optimized / DLL files
