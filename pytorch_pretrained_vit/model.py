@@ -45,18 +45,26 @@ class ViT(nn.Module):
         load_fc_layer: bool = True,
         load_repr_layer: bool = False,
         ret_attn_scores: bool = False,
-        conv_patching: bool = False,
         ret_images_patchified: bool = False,
         ret_interm_repr: bool = False,
         multimodal: bool = False,
+        conv_patching: bool = False,
     ):
         super().__init__()
         config.calc_pre_dims()
         self.config = config
-        self.ret_attn_scores = ret_attn_scores
-        self.ret_images_patchified = ret_images_patchified
-        #self.config = deepcopy(config)
         
+        self.config.load_fc_layer = load_fc_layer
+        self.config.load_repr_layer = load_repr_layer
+        
+        self.config.ret_attn_scores = ret_attn_scores
+        self.config.ret_images_patchified = ret_images_patchified
+        self.config.ret_interm_repr = ret_interm_repr
+        
+        self.config.multimodal = multimodal
+        
+        self.config.conv_patching = conv_patching
+
         # Patch embedding
         if conv_patching == False:
             self.patch_embedding = nn.Conv2d(
@@ -163,7 +171,7 @@ class ViT(nn.Module):
         # pass tokens and mask to transformer
         # output can be either a tensor, or a tuple of 2 or 3 tensors (x, interm_repr, scores)
         transformer_outputs = self.transformer(x, mask)
-        if self.ret_images_patchified:
+        if self.config.ret_images_patchified:
             return transformer_outputs, images_patchified
         return transformer_outputs
        
@@ -176,11 +184,11 @@ class ViT(nn.Module):
         """ 
         assert not self.ret_interm_repr, "Use self.extract_features method when self.ret_interm_repr"
 
-        if self.ret_attn_scores and self.ret_images_patchified:
+        if self.config.ret_attn_scores and self.config.ret_images_patchified:
             (x, scores), images_patchified = self.extract_features(images, text, mask)
-        elif self.ret_attn_scores:
+        elif self.config.ret_attn_scores:
             x, scores = self.extract_features(images, text, mask)
-        elif self.ret_images_patchified:
+        elif self.config.ret_images_patchified:
             x, images_patchified = self.extract_features(images, text, mask)        
         else:
             x = self.extract_features(images, text, mask)
@@ -193,11 +201,11 @@ class ViT(nn.Module):
             x = self.norm(x)[:, 0]  # b,d
             x = self.fc(x)  # b,num_classes
         
-        if self.ret_attn_scores and self.ret_images_patchified:
+        if self.config.ret_attn_scores and self.config.ret_images_patchified:
             return x, scores, images_patchified
-        elif self.ret_attn_scores:
+        elif self.config.ret_attn_scores:
             return x, scores
-        elif self.ret_images_patchified:
+        elif self.config.ret_images_patchified:
             return x, images_patchified
         else:
             return x
