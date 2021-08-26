@@ -60,8 +60,8 @@ def get_base_config():
       layer_norm_eps=1e-12,
     )
 
-def get_sb16_config():
-    """Returns the ViT-B/16 configuration."""
+def get_ssb16_config():
+    """Returns the ViT-B/16 configuration with 3 layers."""
     config = get_base_config()
     config.update(dict(
         patch_size=(16, 16),
@@ -69,8 +69,17 @@ def get_sb16_config():
     ))
     return config
 
+def get_sb16_config():
+    """Returns the ViT-B/16 configuration with 6 layers."""
+    config = get_base_config()
+    config.update(dict(
+        patch_size=(16, 16),
+        num_hidden_layers=6
+    ))
+    return config
+
 def get_ti16_config():
-    """Returns the ViT-S/16 configuration."""
+    """Returns the ViT-Ti/16 configuration."""
     config = get_base_config()
     config.update(dict(
         patch_size=(16, 16),
@@ -82,7 +91,7 @@ def get_ti16_config():
     return config
 
 def get_s16_config():
-    """Returns the ViT-L/16 configuration."""
+    """Returns the ViT-S/16 configuration."""
     config = get_base_config()
     config.update(dict(
         patch_size=(16, 16),
@@ -146,6 +155,11 @@ def drop_head_variant(config):
     return config
 
 PRETRAINED_CONFIGS = {
+    'ssB_16': {
+      'config': get_ssb16_config(),
+      'url': None,
+      'url_og': None
+    },
     'sB_16': {
       'config': get_sb16_config(),
       'url': None,
