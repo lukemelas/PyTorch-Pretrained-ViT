@@ -90,6 +90,12 @@ def get_ti16_config():
     ))
     return config
 
+def get_ti32_config():
+    """Returns the ViT-S/16 configuration."""
+    config = get_ti16_config()
+    config.update(dict(patch_size=(32, 32)))
+    return config
+
 def get_s16_config():
     """Returns the ViT-S/16 configuration."""
     config = get_base_config()
@@ -100,6 +106,12 @@ def get_s16_config():
         num_attention_heads=6,
         representation_size=384
     ))
+    return config
+
+def get_s32_config():
+    """Returns the ViT-S/16 configuration."""
+    config = get_s16_config()
+    config.update(dict(patch_size=(32, 32)))
     return config
 
 def get_b16_config():
@@ -170,8 +182,18 @@ PRETRAINED_CONFIGS = {
       'url': None,
       'url_og': None
     },
+    'Ti_32': {
+      'config': get_ti32_config(),
+      'url': None,
+      'url_og': None
+    },
     'S_16': {
       'config': get_s16_config(),
+      'url': None,
+      'url_og': None
+    },
+    'S_32': {
+      'config': get_s32_config(),
       'url': None,
       'url_og': None
     },
