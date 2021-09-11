@@ -53,6 +53,7 @@ def get_base_config():
       classifier='token',
       pretrained_num_classes=21843,
       pretrained_image_size=224,
+      num_classes=21843,
       image_size=224,
       pretrained_num_channels=3,
       pos_embedding_type='learned',
@@ -166,6 +167,16 @@ def drop_head_variant(config):
     config.update(dict(representation_size=None))
     return config
 
+def in1k_variant(config):
+    config.update(dict(
+        image_size=384,
+        num_classes=1000,
+        pretrained_image_size=384,
+        pretrained_num_classes=1000,
+        representation_size=None,
+    ))
+    return config
+
 PRETRAINED_CONFIGS = {
     'ssB_16': {
       'config': get_ssb16_config(),
@@ -221,6 +232,41 @@ PRETRAINED_CONFIGS = {
       'config': get_h14_config(),
       'url': None,
       'url_og': "https://storage.googleapis.com/vit_models/imagenet21k/ViT-H_14.npz"
+    },
+    'B_16_in1k': {
+      'config': in1k_variant(get_b16_config()),
+      'url': "https://github.com/lukemelas/PyTorch-Pretrained-ViT/releases/download/0.0.2/B_16_imagenet1k.pth",
+      'url_og': "https://storage.googleapis.com/vit_models/imagenet21k%2Bimagenet2012/ViT-B_16.npz"
+    },
+    'B_32_in1k': {
+      'config': in1k_variant(get_b32_config()),
+      'url': "https://github.com/lukemelas/PyTorch-Pretrained-ViT/releases/download/0.0.2/B_32_imagenet1k.pth",
+      'url_og': "https://storage.googleapis.com/vit_models/imagenet21k%2Bimagenet2012/ViT-B_32.npz"
+    },
+    'L_16_in1k': {
+      'config': in1k_variant(get_l16_config()),
+      'url': "https://github.com/lukemelas/PyTorch-Pretrained-ViT/releases/download/0.0.2/L_16_imagenet1k.pth",
+      'url_og': "https://storage.googleapis.com/vit_models/imagenet21k%2Bimagenet2012/ViT-L_16.npz"
+    },
+    'L_32_in1k': {
+      'config': in1k_variant(get_l32_config()),
+      'url': "https://github.com/lukemelas/PyTorch-Pretrained-ViT/releases/download/0.0.2/L_32_imagenet1k.pth",
+      'url_og': "https://storage.googleapis.com/vit_models/imagenet21k%2Bimagenet2012/ViT-L_32.npz"
+    },
+    'Ti_16_augreg': {
+      'config': drop_head_variant(get_ti16_config()),
+      'url': None,
+      'url_og': "https://storage.googleapis.com/vit_models/augreg/Ti_16-i21k-300ep-lr_0.001-aug_none-wd_0.03-do_0.0-sd_0.0.npz"
+    },
+    'S_16_augreg': {
+      'config': drop_head_variant(get_s16_config()),
+      'url': None,
+      'url_og': "https://storage.googleapis.com/vit_models/augreg/S_16-i21k-300ep-lr_0.001-aug_light1-wd_0.03-do_0.0-sd_0.0.npz"
+    },
+    'S_32_augreg': {
+      'config': drop_head_variant(get_s32_config()),
+      'url': None,
+      'url_og': "https://storage.googleapis.com/vit_models/augreg/S_32-i21k-300ep-lr_0.001-aug_none-wd_0.1-do_0.0-sd_0.0.npz"
     }
 }
 
