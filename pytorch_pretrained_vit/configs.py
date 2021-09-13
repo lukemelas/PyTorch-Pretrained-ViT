@@ -115,6 +115,36 @@ def get_s32_config():
     config.update(dict(patch_size=(32, 32)))
     return config
 
+def get_ti4_config():
+    config = get_ti16_config()
+    config.update(dict(patch_size=(4, 4)))
+    return config
+
+def get_ti8_config():
+    config = get_ti16_config()
+    config.update(dict(patch_size=(8, 8)))
+    return config
+
+def get_s4_config():
+    config = get_s16_config()
+    config.update(dict(patch_size=(4, 4)))
+    return config
+
+def get_s8_config():
+    config = get_s16_config()
+    config.update(dict(patch_size=(8, 8)))
+    return config
+
+def get_b4_config():
+    config = get_base_config()
+    config.update(dict(patch_size=(4, 4)))
+    return config
+
+def get_b8_config():
+    config = get_base_config()
+    config.update(dict(patch_size=(8, 8)))
+    return config
+
 def get_b16_config():
     """Returns the ViT-B/16 configuration."""
     config = get_base_config()
@@ -188,6 +218,16 @@ PRETRAINED_CONFIGS = {
       'url': None,
       'url_og': None
     },
+    'Ti_4': {
+      'config': get_ti4_config(),
+      'url': None,
+      'url_og': None
+    },
+    'Ti_8': {
+      'config': get_ti8_config(),
+      'url': None,
+      'url_og': None
+    },
     'Ti_16': {
       'config': get_ti16_config(),
       'url': None,
@@ -198,6 +238,16 @@ PRETRAINED_CONFIGS = {
       'url': None,
       'url_og': None
     },
+    'S_4': {
+      'config': get_s4_config(),
+      'url': None,
+      'url_og': None
+    },
+    'S_8': {
+      'config': get_s8_config(),
+      'url': None,
+      'url_og': None
+    },
     'S_16': {
       'config': get_s16_config(),
       'url': None,
@@ -205,6 +255,16 @@ PRETRAINED_CONFIGS = {
     },
     'S_32': {
       'config': get_s32_config(),
+      'url': None,
+      'url_og': None
+    },
+    'B_4': {
+      'config': get_b4_config(),
+      'url': None,
+      'url_og': None
+    },
+    'B_8': {
+      'config': get_b8_config(),
       'url': None,
       'url_og': None
     },
