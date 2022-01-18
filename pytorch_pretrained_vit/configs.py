@@ -61,7 +61,7 @@ def get_base_config():
       layer_norm_eps=1e-12,
     )
 
-def get_ssb16_config():
+def get_bss16_config():
     """Returns the ViT-B/16 configuration with 3 layers."""
     config = get_base_config()
     config.update(dict(
@@ -70,7 +70,7 @@ def get_ssb16_config():
     ))
     return config
 
-def get_sb16_config():
+def get_bs16_config():
     """Returns the ViT-B/16 configuration with 6 layers."""
     config = get_base_config()
     config.update(dict(
@@ -208,15 +208,15 @@ def in1k_variant(config):
     return config
 
 PRETRAINED_CONFIGS = {
-    'ssB_16': {
-      'config': get_ssb16_config(),
-      'url': None,
-      'url_og': None
+    'Bss_16': {
+      'config': get_bss16_config(),
+      'url': "https://github.com/lukemelas/PyTorch-Pretrained-ViT/releases/download/0.0.2/B_16.pth",
+      'url_og': "https://storage.googleapis.com/vit_models/imagenet21k/ViT-B_16.npz"
     },
-    'sB_16': {
-      'config': get_sb16_config(),
-      'url': None,
-      'url_og': None
+    'Bs_16': {
+      'config': get_bs16_config(),
+      'url': "https://github.com/lukemelas/PyTorch-Pretrained-ViT/releases/download/0.0.2/B_16.pth",
+      'url_og': "https://storage.googleapis.com/vit_models/imagenet21k/ViT-B_16.npz"
     },
     'Ti_4': {
       'config': get_ti4_config(),
