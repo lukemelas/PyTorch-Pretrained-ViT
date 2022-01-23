@@ -147,7 +147,7 @@ class ViT(nn.Module):
             nn.init.constant_(self.fc.weight, 0)
             nn.init.constant_(self.fc.bias, 0)
         nn.init.normal_(self.positional_embedding.pos_embedding, std=0.02)  # _trunc_normal(self.positional_embedding.pos_embedding, std=0.02)
-        if hasattr(self, class_token):
+        if hasattr(self, 'class_token'):
             nn.init.constant_(self.class_token, 0)
 
     def extract_patch_representation(self, images):
