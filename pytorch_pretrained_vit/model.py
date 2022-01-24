@@ -107,10 +107,11 @@ class ViT(nn.Module):
             pre_logits_size = self.config.representation_size
         else:
             pre_logits_size = self.config.hidden_size
-        
+
+        self.norm = nn.LayerNorm(pre_logits_size, eps=self.config.layer_norm_eps)
+
         # Classifier head
         if load_fc_layer:
-            self.norm = nn.LayerNorm(pre_logits_size, eps=self.config.layer_norm_eps)
             self.fc = nn.Linear(pre_logits_size, self.config.num_classes)
 
         # Initialize weights
@@ -203,10 +204,11 @@ class ViT(nn.Module):
         if hasattr(self, 'pre_logits'):
             x = self.pre_logits(x) # b,d
             x = torch.tanh(x) # b,d
-        
+
+        x = self.norm(x)
+
         if hasattr(self, 'fc'):
-            x = self.norm(x)[:, 0]  # b,d
-            x = self.fc(x)  # b,num_classes
+            x = self.fc(x)[:, 0]  # b,num_classes
 
         if self.config.ret_interm_repr and self.config.ret_attn_scores and self.config.ret_images_patchified:
             return x, interm_repr, scores, images_patchified
