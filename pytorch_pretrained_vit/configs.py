@@ -14,17 +14,19 @@ class ViTConfigExtended(ViTConfig):
     def __init__(self,
         pos_embedding_type: str = 'learned',
         classifier: str = 'token',
+        norm_head: bool = True,
         num_classes: int = 21843,
         representation_size: int = 768,
         pretrained_image_size: int = 224,  
         pretrained_num_channels: int = 3,
         pretrained_num_classes: int = 21843,
         max_text_seq_len: int = 32,
-        vocab_size: int= 30522, 
+        vocab_size: int= 30522,
         **kwargs):
         super().__init__(**kwargs)
         self.pos_embedding_type = pos_embedding_type
         self.classifier = classifier
+        self.norm_head = norm_head
         self.num_classes = num_classes
         self.representation_size = representation_size
         self.pretrained_image_size = pretrained_image_size
@@ -51,6 +53,7 @@ def get_base_config():
       hidden_dropout_prob=0.1,
       representation_size=768,
       classifier='token',
+      norm_head=True,
       pretrained_num_classes=21843,
       pretrained_image_size=224,
       num_classes=21843,
