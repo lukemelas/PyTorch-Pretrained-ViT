@@ -3,8 +3,10 @@ tmp
 *.pkl
 .vscode
 *.npy
-*.npz
+*.npz*
 *.pth
+.nfs*
+examples/**/data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -26,15 +26,15 @@ def merge_last(x, n_dims):
 
 class MultiHeadedSelfAttention(nn.Module):
     """Multi-Headed Dot Product Attention"""
-    def __init__(self, dim, num_heads, dropout):
+    def __init__(self, dim, num_heads, dropout, ret_attn_scores):
         super().__init__()
         self.proj_q = nn.Linear(dim, dim)
         self.proj_k = nn.Linear(dim, dim)
         self.proj_v = nn.Linear(dim, dim)
         self.drop = nn.Dropout(dropout)
         self.n_heads = num_heads
-        self.scores = None # for visualization
-
+        self.ret_attn_scores = ret_attn_scores
+        
     def forward(self, x, mask):
         """
         x, q(query), k(key), v(value) : (B(batch_size), S(seq_len), D(dim))
@@ -49,13 +49,16 @@ class MultiHeadedSelfAttention(nn.Module):
         if mask is not None:
             mask = mask[:, None, None, :].float()
             scores -= 10000.0 * (1.0 - mask)
-        scores = self.drop(F.softmax(scores, dim=-1))
+        # this is what's used to visualize attention
+        scores = self.drop(F.softmax(scores, dim=-1)) 
         # (B, H, S, S) @ (B, H, S, W) -> (B, H, S, W) -trans-> (B, S, H, W)
         h = (scores @ v).transpose(1, 2).contiguous()
         # -merge-> (B, S, D)
         h = merge_last(h, 2)
-        self.scores = scores
-        return h
+        if self.ret_attn_scores:
+            return h, scores
+        else:
+            return h
 
 
 class PositionWiseFeedForward(nn.Module):
@@ -72,31 +75,64 @@ class PositionWiseFeedForward(nn.Module):
 
 class Block(nn.Module):
     """Transformer Block"""
-    def __init__(self, dim, num_heads, ff_dim, dropout):
+    def __init__(self, dim, num_heads, ff_dim, hidden_dropout_prob, 
+    attention_probs_dropout_prob, layer_norm_eps, ret_attn_scores):
         super().__init__()
-        self.attn = MultiHeadedSelfAttention(dim, num_heads, dropout)
+        self.attn = MultiHeadedSelfAttention(dim, num_heads, attention_probs_dropout_prob, ret_attn_scores)
         self.proj = nn.Linear(dim, dim)
-        self.norm1 = nn.LayerNorm(dim, eps=1e-6)
+        self.norm1 = nn.LayerNorm(dim, eps=layer_norm_eps)
         self.pwff = PositionWiseFeedForward(dim, ff_dim)
-        self.norm2 = nn.LayerNorm(dim, eps=1e-6)
-        self.drop = nn.Dropout(dropout)
-
+        self.norm2 = nn.LayerNorm(dim, eps=layer_norm_eps)
+        self.drop = nn.Dropout(hidden_dropout_prob)
+        self.ret_attn_scores = ret_attn_scores
+        
     def forward(self, x, mask):
-        h = self.drop(self.proj(self.attn(self.norm1(x), mask)))
-        x = x + h
-        h = self.drop(self.pwff(self.norm2(x)))
-        x = x + h
-        return x
+        if self.ret_attn_scores:
+            h, scores = self.attn(self.norm1(x), mask) # eq 1
+        else:
+            h = self.attn(self.norm1(x), mask) # eq 1
+        h = self.drop(self.proj(h)) # eq 1
+        x = x + h # eq 2
+        h = self.drop(self.pwff(self.norm2(x))) # eq 3
+        x = x + h # eq 3
+        if self.ret_attn_scores:
+            return x, scores
+        else:
+            return x
 
 
 class Transformer(nn.Module):
     """Transformer with Self-Attentive Blocks"""
-    def __init__(self, num_layers, dim, num_heads, ff_dim, dropout):
+    def __init__(self, num_layers, dim, num_heads, ff_dim, hidden_dropout_prob, 
+    attention_probs_dropout_prob, layer_norm_eps, ret_attn_scores, ret_interm_repr):
         super().__init__()
         self.blocks = nn.ModuleList([
-            Block(dim, num_heads, ff_dim, dropout) for _ in range(num_layers)])
+            Block(dim, num_heads, ff_dim, hidden_dropout_prob, 
+            attention_probs_dropout_prob, layer_norm_eps, ret_attn_scores) for _ in range(num_layers)])
+        
+        self.ret_attn_scores = ret_attn_scores
+        self.ret_interm_repr = ret_interm_repr
 
     def forward(self, x, mask=None):
+        if self.ret_attn_scores:
+            scores_list = []
+        if self.ret_interm_repr:
+            interm_repr_list = []
+
         for block in self.blocks:
-            x = block(x, mask)
-        return x
+            if self.ret_attn_scores:
+                x, scores = block(x, mask)
+                scores_list.append(scores)
+            else:
+                x = block(x, mask)
+            if self.ret_interm_repr:
+                interm_repr_list.append(x)
+
+        if self.ret_interm_repr and self.ret_attn_scores:
+            return x, interm_repr_list, scores_list
+        elif self.ret_interm_repr:
+            return x, interm_repr_list
+        elif self.ret_attn_scores:
+            return x, scores_list
+        else:
+            return x
