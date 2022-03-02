@@ -69,7 +69,7 @@ def get_bss16_config():
     config = get_base_config()
     config.update(dict(
         patch_size=(16, 16),
-        num_hidden_layers=3
+        num_hidden_layers=4
     ))
     return config
 
@@ -82,7 +82,7 @@ def get_bs16_config():
     ))
     return config
 
-def get_ti16_config():
+def get_t16_config():
     """Returns the ViT-Ti/16 configuration."""
     config = get_base_config()
     config.update(dict(
@@ -94,9 +94,9 @@ def get_ti16_config():
     ))
     return config
 
-def get_ti32_config():
+def get_t32_config():
     """Returns the ViT-S/16 configuration."""
-    config = get_ti16_config()
+    config = get_t16_config()
     config.update(dict(patch_size=(32, 32)))
     return config
 
@@ -118,14 +118,19 @@ def get_s32_config():
     config.update(dict(patch_size=(32, 32)))
     return config
 
-def get_ti4_config():
-    config = get_ti16_config()
+def get_t4_config():
+    config = get_t16_config()
     config.update(dict(patch_size=(4, 4)))
     return config
 
-def get_ti8_config():
-    config = get_ti16_config()
+def get_t8_config():
+    config = get_t16_config()
     config.update(dict(patch_size=(8, 8)))
+    return config
+
+def get_tiss16_config():
+    config = get_t16_config()
+    config.update(dict(num_hidden_layers=4))
     return config
 
 def get_s4_config():
@@ -221,23 +226,28 @@ PRETRAINED_CONFIGS = {
       'url': "https://github.com/lukemelas/PyTorch-Pretrained-ViT/releases/download/0.0.2/B_16.pth",
       'url_og': "https://storage.googleapis.com/vit_models/imagenet21k/ViT-B_16.npz"
     },
-    'Ti_4': {
-      'config': get_ti4_config(),
+    'T_4': {
+      'config': get_t4_config(),
       'url': None,
       'url_og': None
     },
-    'Ti_8': {
-      'config': get_ti8_config(),
+    'T_8': {
+      'config': get_t8_config(),
       'url': None,
       'url_og': None
     },
-    'Ti_16': {
-      'config': get_ti16_config(),
+    'T_16': {
+      'config': get_t16_config(),
       'url': None,
       'url_og': None
     },
-    'Ti_32': {
-      'config': get_ti32_config(),
+    'Ts_16': {
+      'config': get_t16_config(),
+      'url': None,
+      'url_og': None
+    },
+    'T_32': {
+      'config': get_t32_config(),
       'url': None,
       'url_og': None
     },
@@ -316,8 +326,8 @@ PRETRAINED_CONFIGS = {
       'url': "https://github.com/lukemelas/PyTorch-Pretrained-ViT/releases/download/0.0.2/L_32_imagenet1k.pth",
       'url_og': "https://storage.googleapis.com/vit_models/imagenet21k%2Bimagenet2012/ViT-L_32.npz"
     },
-    'Ti_16_augreg': {
-      'config': drop_head_variant(get_ti16_config()),
+    'T_16_augreg': {
+      'config': drop_head_variant(get_t16_config()),
       'url': None,
       'url_og': "https://storage.googleapis.com/vit_models/augreg/Ti_16-i21k-300ep-lr_0.001-aug_none-wd_0.03-do_0.0-sd_0.0.npz"
     },
